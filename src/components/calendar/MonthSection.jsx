@@ -7,7 +7,7 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
  * Renders one month as a 6-week grid. Days outside the month are dimmed.
  * Used as a section in the infinite-scroll month view.
  */
-export function MonthSection({ year, month, days, categories, examDate, monthLabel }) {
+export function MonthSection({ year, month, days, categories, examDate, monthLabel, onMoveBlock }) {
   const first = new Date(year, month, 1);
   const startOffset = first.getDay();
   const gridStart = new Date(first);
@@ -28,6 +28,7 @@ export function MonthSection({ year, month, days, categories, examDate, monthLab
         isExamDay={examDate === k}
         dayData={days[k]}
         categories={categories}
+        onMoveBlock={onMoveBlock}
       />
     );
   }

@@ -7,7 +7,7 @@ import { resolveCategories } from "@/lib/categories";
  * current month up to (but not past) the user's exam date. Auto-scrolls to
  * "today" on first mount.
  */
-export function MonthView({ days, examDate, settings }) {
+export function MonthView({ days, examDate, settings, onMoveBlock }) {
   const containerRef = useRef(null);
   const todayRef = useRef(null);
   const [scrolledToToday, setScrolledToToday] = useState(false);
@@ -73,6 +73,7 @@ export function MonthView({ days, examDate, settings }) {
               categories={categories}
               examDate={examDate}
               monthLabel={label}
+              onMoveBlock={onMoveBlock}
             />
           </div>
         );

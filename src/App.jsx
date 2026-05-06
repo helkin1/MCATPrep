@@ -35,7 +35,7 @@ export default function App() {
 
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading, update: updateProfile } = useProfile(user?.id);
-  const { days, loading: daysLoading, upsertBlock, deleteBlock, setDayTodos, bulkReplace } = useDays(user?.id);
+  const { days, loading: daysLoading, upsertBlock, deleteBlock, setDayTodos, bulkReplace, moveBlock } = useDays(user?.id);
   const { templates, persist: persistTemplates } = useTemplates(user?.id);
 
   if (authLoading) return <Loading />;
@@ -67,6 +67,7 @@ export default function App() {
                 days={days}
                 examDate={profile.exam_date}
                 settings={profile.settings}
+                onMoveBlock={moveBlock}
               />
             }
           />

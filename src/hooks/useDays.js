@@ -143,6 +143,33 @@ export function useDays(userId) {
     [queueSave]
   );
 
+  const moveBlock = useCallback(
+    (fromKey, toKey, blockId) => {
+      if (fromKey === toKey) return;
+      setDays((prev) => {
+        const fromDay = prev[fromKey];
+        if (!fromDay) return prev;
+        const block = fromDay.blocks.find((b) => b.id === blockId);
+        if (!block) return prev;
+        const next = { ...prev };
+        next[fromKey] = {
+          ...fromDay,
+          blocks: fromDay.blocks.filter((b) => b.id !== blockId),
+        };
+        const toDay = prev[toKey] || { blocks: [], todos: [] };
+        next[toKey] = {
+          ...toDay,
+          blocks: [...toDay.blocks, block].sort((a, b) =>
+            a.start.localeCompare(b.start)
+          ),
+        };
+        queueSave(next);
+        return next;
+      });
+    },
+    [queueSave]
+  );
+
   return {
     days,
     loading,
@@ -152,6 +179,7 @@ export function useDays(userId) {
     deleteBlock,
     replaceDay,
     bulkReplace,
+    moveBlock,
     flush,
   };
 }
