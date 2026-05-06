@@ -3,29 +3,35 @@ import { cn } from "@/lib/utils";
 
 export function ColorPicker({ value, onChange }) {
   return (
-    <div className="grid grid-cols-10 gap-1.5">
-      {COLOR_PALETTE.map((c) => (
-        <button
-          key={c}
-          type="button"
-          className={cn(
-            "h-7 w-7 rounded-md border-2 transition-transform hover:scale-110",
-            value === c ? "border-white" : "border-transparent"
-          )}
-          style={{ background: c }}
-          onClick={() => onChange(c)}
-          aria-label={`Pick ${c}`}
-        />
-      ))}
-      <div className="col-span-10 flex items-center gap-2 mt-1.5">
-        <span className="text-xs text-zinc-400">Custom:</span>
+    <div>
+      <div className="grid grid-cols-10 gap-1.5">
+        {COLOR_PALETTE.map((c) => (
+          <button
+            key={c}
+            type="button"
+            className={cn(
+              "h-7 w-7 rounded-md transition-transform hover:scale-110 ring-offset-2 ring-offset-surface-2 outline-none",
+              value === c
+                ? "ring-2 ring-text-1"
+                : "ring-1 ring-border"
+            )}
+            style={{ background: c }}
+            onClick={() => onChange(c)}
+            aria-label={`Pick ${c}`}
+          />
+        ))}
+      </div>
+      <div className="flex items-center gap-3 mt-3">
+        <span className="text-[11px] uppercase tracking-[0.04em] text-text-3 font-medium">
+          Custom
+        </span>
         <input
           type="color"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-7 w-10 rounded cursor-pointer bg-transparent border border-zinc-700"
+          className="h-7 w-10 rounded cursor-pointer bg-transparent border border-border"
         />
-        <span className="text-xs font-mono text-zinc-400">{value}</span>
+        <span className="font-mono text-[12px] text-text-2 tabular">{value}</span>
       </div>
     </div>
   );

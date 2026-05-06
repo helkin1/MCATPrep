@@ -11,6 +11,19 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"
     />
     <title>MCAT Prep Planner</title>
+    <script>
+      // Apply persisted theme before paint to avoid flash.
+      (function () {
+        try {
+          var t = localStorage.getItem("mcat:theme");
+          if (t === "light") {
+            document.documentElement.setAttribute("data-theme", "light");
+            var m = document.querySelector('meta[name="theme-color"]');
+            if (m) m.setAttribute("content", "#fafaf7");
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

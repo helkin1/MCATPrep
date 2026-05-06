@@ -1,66 +1,74 @@
 import { useState } from "react";
 import { CategoriesPanel } from "@/components/settings/CategoriesPanel";
 import { TemplatesPanel } from "@/components/settings/TemplatesPanel";
-import { cn } from "@/lib/utils";
+import { Button, Input, Label, Segmented, useToast } from "@/components/ui";
 
 export function SettingsPage({ profile, updateProfile, templates, persistTemplates, days, bulkReplaceDays }) {
   const [tab, setTab] = useState("categories");
   const [examDate, setExamDate] = useState(profile?.exam_date || "");
+  const { toast } = useToast();
 
   const saveExamDate = async () => {
     await updateProfile({ exam_date: examDate || null });
+    toast({ variant: "success", title: "Exam date saved" });
   };
 
+  const dirty = (profile?.exam_date || "") !== examDate;
+
   return (
-    <div className="overflow-y-auto h-full p-6 max-w-3xl mx-auto w-full">
-      <h1 className="text-xl font-semibold mb-6">Settings</h1>
+    <div className="overflow-y-auto h-full bg-bg">
+      <div className="max-w-3xl mx-auto w-full p-8">
+        <h1 className="font-display text-[28px] font-semibold tracking-tight text-text-1 mb-8">
+          Settings
+        </h1>
 
-      <section className="mb-8">
-        <h2 className="text-sm font-semibold mb-2">Exam date</h2>
-        <div className="flex gap-2 items-center">
-          <input
-            type="date"
-            value={examDate}
-            onChange={(e) => setExamDate(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm"
-          />
-          <button
-            onClick={saveExamDate}
-            className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-3 py-1.5 rounded-md"
-          >
-            Save
-          </button>
-        </div>
-      </section>
+        <section className="mb-10">
+          <h2 className="text-[11px] uppercase tracking-[0.06em] font-medium text-text-3 mb-3">
+            Exam date
+          </h2>
+          <div className="bg-surface-1 border border-border rounded-xl p-5">
+            <p className="text-[13px] text-text-2 mb-4 leading-relaxed">
+              Sets your countdown and limits the calendar to dates leading up to
+              exam day.
+            </p>
+            <div className="flex items-end gap-3">
+              <div className="max-w-[220px] flex-1">
+                <Label>Date</Label>
+                <Input
+                  type="date"
+                  value={examDate}
+                  onChange={(e) => setExamDate(e.target.value)}
+                />
+              </div>
+              <Button onClick={saveExamDate} disabled={!dirty}>
+                Save
+              </Button>
+            </div>
+          </div>
+        </section>
 
-      <div className="flex gap-1 border-b border-zinc-800 mb-4">
-        {["categories", "templates"].map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={cn(
-              "px-4 py-2 text-sm capitalize border-b-2 -mb-px",
-              tab === t
-                ? "border-blue-500 text-zinc-100"
-                : "border-transparent text-zinc-400 hover:text-zinc-100"
-            )}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-
-      {tab === "categories" && (
-        <CategoriesPanel profile={profile} updateProfile={updateProfile} />
-      )}
-      {tab === "templates" && (
-        <TemplatesPanel
-          templates={templates}
-          persistTemplates={persistTemplates}
-          days={days}
-          bulkReplaceDays={bulkReplaceDays}
+        <Segmented
+          value={tab}
+          onChange={setTab}
+          items={[
+            { value: "categories", label: "Categories" },
+            { value: "templates", label: "Templates" },
+          ]}
+          className="mb-5"
         />
-      )}
+
+        {tab === "categories" && (
+          <CategoriesPanel profile={profile} updateProfile={updateProfile} />
+        )}
+        {tab === "templates" && (
+          <TemplatesPanel
+            templates={templates}
+            persistTemplates={persistTemplates}
+            days={days}
+            bulkReplaceDays={bulkReplaceDays}
+          />
+        )}
+      </div>
     </div>
   );
 }
