@@ -70,7 +70,7 @@ export function TopBar({ examDate }) {
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 rounded-[5px] bg-gradient-to-br from-accent to-accent-strong shadow-sm" />
           <span className="font-display text-[14px] font-semibold tracking-tight text-text-1">
-            MCAT Prep
+            Atara's MCAT Prep
           </span>
         </div>
         <div className="h-4 w-px bg-border-strong" />

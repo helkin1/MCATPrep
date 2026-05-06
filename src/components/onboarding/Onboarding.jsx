@@ -73,7 +73,7 @@ export function Onboarding({ profile, updateProfile, days, bulkReplace }) {
         <div className="flex items-center gap-2 mb-6">
           <div className="w-5 h-5 rounded-[5px] bg-gradient-to-br from-accent to-accent-strong shadow-sm" />
           <span className="font-display text-[13px] font-semibold tracking-tight text-text-1">
-            MCAT Prep
+            Atara's MCAT Prep
           </span>
         </div>
 
