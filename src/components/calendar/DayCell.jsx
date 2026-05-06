@@ -1,8 +1,21 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { dayKey } from "@/lib/time";
-import { getCategory, textOn } from "@/lib/categories";
+import { getCategory } from "@/lib/categories";
 import { cn } from "@/lib/utils";
+
+/**
+ * Convert a hex color to an `rgb(r g b / alpha)` string.
+ * Used so block chips render as soft tinted fills rather than saturated solids.
+ */
+function tint(hex, alpha) {
+  const c = (hex || "#888").replace("#", "");
+  if (c.length !== 6) return `rgba(136,136,136,${alpha})`;
+  const r = parseInt(c.slice(0, 2), 16);
+  const g = parseInt(c.slice(2, 4), 16);
+  const b = parseInt(c.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 export function DayCell({ date, inMonth, isToday, isExamDay, dayData, categories, onMoveBlock }) {
   const navigate = useNavigate();
@@ -20,7 +33,6 @@ export function DayCell({ date, inMonth, isToday, isExamDay, dayData, categories
   const more = blocks.length - visible.length;
 
   const onCellClick = (e) => {
-    // Don't navigate if user just finished a drag inside the cell
     if (e.defaultPrevented) return;
     navigate(`/day/${myKey}`);
   };
@@ -64,26 +76,38 @@ export function DayCell({ date, inMonth, isToday, isExamDay, dayData, categories
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       className={cn(
-        "min-h-[110px] bg-zinc-900 hover:bg-zinc-800/70 transition-colors flex flex-col items-stretch text-left p-2 gap-1 cursor-pointer",
+        "group relative min-h-[112px] rounded-lg flex flex-col items-stretch text-left p-2.5 gap-1.5 cursor-pointer",
+        "bg-surface-1 border border-border shadow-sm",
+        "transition-[transform,background,box-shadow,border-color] duration-[var(--dur-fast)] ease-[var(--ease-out)]",
+        "hover:bg-surface-2 hover:-translate-y-px hover:shadow-md hover:border-border-strong",
         !inMonth && "opacity-40",
-        isExamDay && "ring-1 ring-inset ring-red-500/60",
-        dragOver && "ring-2 ring-inset ring-blue-400 bg-zinc-800/80"
+        isToday && "bg-accent-soft border-[color:var(--accent)]/40",
+        isExamDay && "border-danger/50 bg-[color:var(--danger-soft)]",
+        dragOver && "ring-2 ring-accent border-accent bg-surface-2"
       )}
     >
+      {/* Day number row */}
       <div className="flex items-center justify-between">
         <span
           className={cn(
-            "text-xs w-6 h-6 leading-6 text-center rounded-full",
-            isToday ? "bg-blue-500 text-zinc-950 font-bold" : "text-zinc-300"
+            "tabular text-[12px] font-medium leading-none",
+            isToday ? "text-accent font-semibold" : "text-text-2"
           )}
         >
           {date.getDate()}
         </span>
+        {isToday && (
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent" />
+        )}
         {isExamDay && (
-          <span className="text-[10px] uppercase tracking-wide text-red-400 font-semibold">Exam</span>
+          <span className="text-[9px] uppercase tracking-[0.08em] text-danger font-semibold">
+            Exam
+          </span>
         )}
       </div>
-      <div className="flex flex-col gap-0.5 overflow-hidden">
+
+      {/* Block chips — soft tinted fill + 2px accent left bar */}
+      <div className="flex flex-col gap-1 overflow-hidden">
         {visible.map((b) => {
           const cat = getCategory(categories, b.category);
           return (
@@ -91,16 +115,25 @@ export function DayCell({ date, inMonth, isToday, isExamDay, dayData, categories
               key={b.id}
               draggable
               onDragStart={(e) => onDragStart(e, b.id)}
-              onClick={(e) => e.stopPropagation() || navigate(`/day/${myKey}`)}
-              title="Drag to move to another day · click to open"
-              className="text-[11px] px-1.5 py-0.5 rounded truncate font-medium cursor-grab active:cursor-grabbing"
-              style={{ background: cat.color, color: textOn(cat.color) }}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/day/${myKey}`);
+              }}
+              title="Drag to move · click to open"
+              className="text-[11px] pl-1.5 pr-1.5 py-[3px] rounded-[4px] truncate font-medium cursor-grab active:cursor-grabbing border-l-2"
+              style={{
+                background: tint(cat.color, 0.16),
+                borderLeftColor: cat.color,
+                color: "var(--text-1)",
+              }}
             >
               {b.title || cat.label}
             </div>
           );
         })}
-        {more > 0 && <div className="text-[10px] text-zinc-500">+{more} more</div>}
+        {more > 0 && (
+          <div className="text-[10px] text-text-3 px-1">+{more} more</div>
+        )}
       </div>
     </div>
   );

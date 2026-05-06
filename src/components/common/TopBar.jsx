@@ -1,59 +1,124 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { Calendar, Clock, Settings, LogOut } from "lucide-react";
 import { signOut } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
-import { Calendar, Clock, Settings, LogOut } from "lucide-react";
+import { Tooltip } from "@/components/ui";
 
-export function TopBar({ examDate }) {
-  const location = useLocation();
+const NAV = [
+  { to: "/", label: "Month", icon: Calendar, match: (p) => p === "/" },
+  { to: "/day", label: "Day", icon: Clock, match: (p) => p.startsWith("/day") },
+  { to: "/settings", label: "Settings", icon: Settings, match: (p) => p.startsWith("/settings") },
+];
 
-  const countdownText = () => {
-    if (!examDate) return "No exam date set";
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const exam = new Date(examDate);
-    exam.setHours(0, 0, 0, 0);
-    const days = Math.round((exam - today) / 86400000);
-    if (days > 0) return `${days} days to MCAT`;
-    if (days === 0) return "MCAT is today";
-    return `MCAT was ${Math.abs(days)} days ago`;
-  };
-
-  const NavLink = ({ to, icon: Icon, label }) => {
-    const active = location.pathname === to || (to !== "/" && location.pathname.startsWith(to));
+function Countdown({ examDate }) {
+  if (!examDate) {
     return (
-      <Link
-        to={to}
-        className={cn(
-          "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors",
-          active
-            ? "bg-zinc-800 text-zinc-100"
-            : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
-        )}
-      >
-        <Icon size={14} />
-        {label}
-      </Link>
+      <span className="text-[11px] text-text-3 tracking-[0.04em] uppercase">
+        No exam date
+      </span>
     );
-  };
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const exam = new Date(examDate);
+  exam.setHours(0, 0, 0, 0);
+  const days = Math.round((exam - today) / 86400000);
+
+  const sign = days > 0 ? "−" : days < 0 ? "+" : "";
+  const value = Math.abs(days);
+  const caption =
+    days > 0 ? "to MCAT" : days === 0 ? "MCAT today" : "since MCAT";
 
   return (
-    <header className="flex items-center justify-between px-5 py-3 border-b border-zinc-800 bg-zinc-900">
-      <div className="flex items-center gap-4">
-        <h1 className="text-base font-semibold tracking-tight">MCAT Prep</h1>
-        <span className="text-xs text-zinc-500">{countdownText()}</span>
+    <div className="flex items-baseline gap-1.5">
+      <span className="font-mono tabular text-[13px] font-medium text-text-1">
+        D{sign}
+        {value}
+      </span>
+      <span className="text-[11px] text-text-3 uppercase tracking-[0.04em]">
+        {caption}
+      </span>
+    </div>
+  );
+}
+
+export function TopBar({ examDate }) {
+  const { pathname } = useLocation();
+  const navRef = useRef(null);
+  const itemRefs = useRef({});
+  const [pill, setPill] = useState(null); // { left, width }
+
+  // Re-position the sliding pill underneath the active nav item.
+  useLayoutEffect(() => {
+    const active = NAV.find((n) => n.match(pathname));
+    if (!active) return setPill(null);
+    const el = itemRefs.current[active.to];
+    const parent = navRef.current;
+    if (!el || !parent) return;
+    const eRect = el.getBoundingClientRect();
+    const pRect = parent.getBoundingClientRect();
+    setPill({ left: eRect.left - pRect.left, width: eRect.width });
+  }, [pathname]);
+
+  return (
+    <header className="relative h-[52px] flex items-center justify-between px-6 bg-surface-1/80 backdrop-blur-md border-b border-border">
+      {/* Brand + countdown */}
+      <div className="flex items-center gap-5">
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 rounded-[5px] bg-gradient-to-br from-accent to-accent-strong shadow-sm" />
+          <span className="font-display text-[14px] font-semibold tracking-tight text-text-1">
+            MCAT Prep
+          </span>
+        </div>
+        <div className="h-4 w-px bg-border-strong" />
+        <Countdown examDate={examDate} />
       </div>
-      <nav className="flex items-center gap-1">
-        <NavLink to="/" icon={Calendar} label="Month" />
-        <NavLink to="/day" icon={Clock} label="Day" />
-        <NavLink to="/settings" icon={Settings} label="Settings" />
-        <button
-          onClick={() => signOut()}
-          className="ml-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50 transition-colors"
-          aria-label="Sign out"
-        >
-          <LogOut size={14} />
-        </button>
+
+      {/* Centered nav with sliding underline */}
+      <nav
+        ref={navRef}
+        className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1"
+        aria-label="Primary"
+      >
+        {pill && (
+          <span
+            aria-hidden
+            className="absolute bottom-0 h-[2px] bg-accent rounded-full transition-[left,width] duration-[var(--dur-base)] ease-[var(--ease-out)]"
+            style={{ left: pill.left, width: pill.width }}
+          />
+        )}
+        {NAV.map(({ to, label, icon: Icon, match }) => {
+          const active = match(pathname);
+          return (
+            <Link
+              key={to}
+              to={to}
+              ref={(el) => (itemRefs.current[to] = el)}
+              className={cn(
+                "relative inline-flex items-center gap-1.5 h-[52px] px-3 text-[13px] font-medium transition-colors",
+                active ? "text-text-1" : "text-text-2 hover:text-text-1"
+              )}
+            >
+              <Icon size={14} />
+              {label}
+            </Link>
+          );
+        })}
       </nav>
+
+      {/* User actions */}
+      <div className="flex items-center gap-1">
+        <Tooltip label="Sign out" side="bottom">
+          <button
+            onClick={() => signOut()}
+            aria-label="Sign out"
+            className="inline-flex items-center justify-center h-8 w-8 rounded-md text-text-2 hover:text-text-1 hover:bg-surface-2 transition-colors"
+          >
+            <LogOut size={14} />
+          </button>
+        </Tooltip>
+      </div>
     </header>
   );
 }
