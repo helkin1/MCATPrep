@@ -1,12 +1,12 @@
 import { useRef, useState } from "react";
-import { FileText, Image as ImageIcon, FileType, Loader2 } from "lucide-react";
+import { FileText, Image as ImageIcon, FileType, Loader2, Upload } from "lucide-react";
+import { Button, Segmented, Textarea } from "@/components/ui";
 
 async function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
       const res = reader.result;
-      // Strip "data:.../...;base64," prefix
       const idx = res.indexOf(",");
       resolve(idx >= 0 ? res.slice(idx + 1) : res);
     };
@@ -58,49 +58,40 @@ export function PlanUploader({ onParsed, onSkip }) {
     }
   };
 
-  const TabBtn = ({ id, icon: Icon, label }) => (
-    <button
-      type="button"
-      onClick={() => setTab(id)}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors ${
-        tab === id ? "bg-zinc-800 text-zinc-100" : "text-zinc-400 hover:text-zinc-100"
-      }`}
-    >
-      <Icon size={14} />
-      {label}
-    </button>
-  );
-
   return (
     <div className="space-y-4">
-      <div className="flex gap-1 border-b border-zinc-800 pb-2">
-        <TabBtn id="text" icon={FileText} label="Paste text / spreadsheet" />
-        <TabBtn id="image" icon={ImageIcon} label="Screenshot" />
-        <TabBtn id="pdf" icon={FileType} label="PDF" />
-      </div>
+      <Segmented
+        value={tab}
+        onChange={setTab}
+        items={[
+          { value: "text", label: "Paste", icon: FileText },
+          { value: "image", label: "Screenshot", icon: ImageIcon },
+          { value: "pdf", label: "PDF", icon: FileType },
+        ]}
+      />
 
       {tab === "text" && (
-        <div className="space-y-2">
-          <textarea
+        <div className="space-y-3">
+          <Textarea
             rows={10}
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Paste your MCAT plan here (text, CSV, weekly schedule, etc.)…"
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-md p-3 text-sm focus:border-blue-500 outline-none font-mono"
+            className="font-mono text-[12px]"
           />
-          <button
+          <Button
             disabled={busy || !text.trim()}
             onClick={submitText}
-            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-md text-sm flex items-center gap-2"
+            size="md"
           >
             {busy && <Loader2 size={14} className="animate-spin" />}
             Parse with Claude
-          </button>
+          </Button>
         </div>
       )}
 
       {(tab === "image" || tab === "pdf") && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <input
             ref={fileRef}
             type="file"
@@ -112,33 +103,39 @@ export function PlanUploader({ onParsed, onSkip }) {
             type="button"
             disabled={busy}
             onClick={() => fileRef.current?.click()}
-            className="w-full border-2 border-dashed border-zinc-700 hover:border-zinc-500 rounded-lg py-12 text-center transition-colors"
+            className="w-full border-2 border-dashed border-border-strong hover:border-accent/60 rounded-xl py-14 px-6 text-center transition-colors bg-surface-2/40 hover:bg-surface-2"
           >
             {busy ? (
-              <div className="flex items-center justify-center gap-2 text-zinc-300">
-                <Loader2 size={16} className="animate-spin" /> Parsing…
+              <div className="flex items-center justify-center gap-2 text-text-1 text-[13px]">
+                <Loader2 size={16} className="animate-spin" /> Parsing with Claude…
               </div>
             ) : (
-              <>
-                <div className="text-zinc-300 font-medium">
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-9 h-9 rounded-full bg-surface-3 flex items-center justify-center text-text-2">
+                  <Upload size={16} />
+                </div>
+                <div className="text-text-1 text-[13px] font-medium">
                   Click to upload {tab === "image" ? "screenshot" : "PDF"}
                 </div>
-                <div className="text-zinc-500 text-xs mt-1">
+                <div className="text-text-3 text-[12px]">
                   {tab === "image" ? "PNG, JPG, etc." : "PDF up to 8MB"}
                 </div>
-              </>
+              </div>
             )}
           </button>
         </div>
       )}
 
       {error && (
-        <div className="text-sm text-red-400 bg-red-900/30 border border-red-900/60 rounded-md px-3 py-2">
+        <div className="text-[12px] text-danger bg-[color:var(--danger-soft)] border border-danger/30 rounded-md px-3 py-2">
           {error}
         </div>
       )}
 
-      <button onClick={onSkip} className="text-sm text-zinc-400 hover:text-zinc-100">
+      <button
+        onClick={onSkip}
+        className="text-[12px] text-text-2 hover:text-text-1 transition-colors"
+      >
         Skip for now → start with a blank calendar
       </button>
     </div>

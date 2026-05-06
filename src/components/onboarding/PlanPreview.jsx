@@ -1,12 +1,18 @@
 import { useMemo, useState } from "react";
-import { resolveCategories, getCategory, textOn } from "@/lib/categories";
+import { resolveCategories, getCategory } from "@/lib/categories";
 import { dayKey, addDays, formatTimeRange, uid } from "@/lib/time";
+import { Button, Input, Label } from "@/components/ui";
+import { cn } from "@/lib/utils";
 
-/**
- * Show parsed items grouped by date, let user toggle items off, then commit.
- * Items can be absolute-dated or offset-based; we resolve offsets against
- * the user's selected start date.
- */
+function tint(hex, alpha) {
+  const c = (hex || "#888").replace("#", "");
+  if (c.length !== 6) return `rgba(136,136,136,${alpha})`;
+  const r = parseInt(c.slice(0, 2), 16);
+  const g = parseInt(c.slice(2, 4), 16);
+  const b = parseInt(c.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export function PlanPreview({ parsed, onCommit, onBack, defaultStartDate }) {
   const [startDate, setStartDate] = useState(defaultStartDate || dayKey(new Date()));
   const [excluded, setExcluded] = useState(new Set());
@@ -19,7 +25,6 @@ export function PlanPreview({ parsed, onCommit, onBack, defaultStartDate }) {
         const d = addDays(new Date(startDate + "T00:00"), it.day_offset);
         date = dayKey(d);
       }
-      // If only duration given, place sequentially starting at 9am
       let start = it.start;
       let end = it.end;
       if (!start && it.duration_minutes) {
@@ -68,36 +73,42 @@ export function PlanPreview({ parsed, onCommit, onBack, defaultStartDate }) {
 
   return (
     <div className="space-y-4">
-      <div className="bg-zinc-800/50 rounded-md p-3 text-sm">
-        <div className="font-medium text-zinc-100">Parsed plan</div>
-        <div className="text-zinc-400 mt-1">{parsed.summary}</div>
+      {/* Summary card */}
+      <div className="bg-surface-2 border border-border rounded-xl p-4">
+        <div className="text-[11px] uppercase tracking-[0.06em] text-text-3 font-medium mb-1">
+          Parsed plan
+        </div>
+        <div className="text-[13px] text-text-1">{parsed.summary}</div>
         {parsed.warnings?.length > 0 && (
-          <div className="mt-2 text-xs text-amber-400">
-            ⚠ {parsed.warnings.join(" · ")}
+          <div className="mt-2 text-[12px] text-warn flex items-start gap-1.5">
+            <span>⚠</span>
+            <span>{parsed.warnings.join(" · ")}</span>
           </div>
         )}
       </div>
 
-      <div className="flex items-center gap-2 text-sm">
-        <label className="text-zinc-400">Start date:</label>
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          className="bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1 text-sm"
-        />
-        <span className="text-xs text-zinc-500">(used for relative offsets)</span>
+      <div className="flex items-center gap-3">
+        <div>
+          <Label>Start date</Label>
+          <Input
+            type="date"
+            size="sm"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        </div>
+        <span className="text-[11px] text-text-3 mt-5">used for relative offsets</span>
       </div>
 
-      <div className="max-h-96 overflow-y-auto space-y-3 pr-2">
+      <div className="max-h-[420px] overflow-y-auto space-y-4 pr-2 -mr-2">
         {grouped.length === 0 && (
-          <div className="text-zinc-500 text-sm text-center py-8">
+          <div className="text-text-3 text-[13px] text-center py-10">
             No items could be placed on the calendar yet. Try adjusting the start date.
           </div>
         )}
         {grouped.map(([date, items]) => (
           <div key={date}>
-            <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">
+            <div className="text-[11px] uppercase tracking-[0.06em] text-text-3 font-medium mb-1.5 tabular">
               {new Date(date + "T00:00").toLocaleDateString(undefined, {
                 weekday: "short",
                 month: "short",
@@ -111,23 +122,45 @@ export function PlanPreview({ parsed, onCommit, onBack, defaultStartDate }) {
                 return (
                   <label
                     key={it.id}
-                    className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm cursor-pointer ${
-                      isExcluded ? "opacity-40" : ""
-                    } hover:bg-zinc-800/50`}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] cursor-pointer transition-colors",
+                      "hover:bg-surface-2",
+                      isExcluded && "opacity-40"
+                    )}
                   >
-                    <input
-                      type="checkbox"
-                      checked={!isExcluded}
-                      onChange={() => toggle(it.idx)}
-                    />
-                    <div
-                      className="px-2 py-0.5 rounded text-xs font-medium"
-                      style={{ background: cat.color, color: textOn(cat.color) }}
+                    <span className="relative inline-flex flex-shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={!isExcluded}
+                        onChange={() => toggle(it.idx)}
+                        className="peer appearance-none w-4 h-4 rounded-[4px] border border-border-strong bg-surface-2 checked:bg-accent-strong checked:border-accent-strong transition-colors cursor-pointer"
+                      />
+                      <svg
+                        viewBox="0 0 16 16"
+                        className="absolute inset-0 w-4 h-4 pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity"
+                        fill="none"
+                        stroke="var(--text-inverse)"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M3.5 8.5l3 3 6-6" />
+                      </svg>
+                    </span>
+                    <span
+                      className="px-1.5 py-0.5 rounded text-[11px] font-medium border-l-2"
+                      style={{
+                        background: tint(cat.color, 0.16),
+                        borderLeftColor: cat.color,
+                        color: "var(--text-1)",
+                      }}
                     >
                       {cat.label}
-                    </div>
-                    <div className="flex-1 truncate">{it.title}</div>
-                    <div className="text-xs text-zinc-500">{formatTimeRange(it.start, it.end)}</div>
+                    </span>
+                    <span className="flex-1 truncate text-text-1">{it.title}</span>
+                    <span className="font-mono tabular text-[11px] text-text-3">
+                      {formatTimeRange(it.start, it.end)}
+                    </span>
                   </label>
                 );
               })}
@@ -137,19 +170,16 @@ export function PlanPreview({ parsed, onCommit, onBack, defaultStartDate }) {
       </div>
 
       <div className="flex justify-between gap-2 pt-2">
-        <button
-          onClick={onBack}
-          className="px-4 py-2 rounded-md text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
-        >
+        <Button variant="ghost" onClick={onBack}>
           ← Back
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={commit}
           disabled={grouped.length === 0}
-          className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-md text-sm"
+          size="md"
         >
-          Apply {resolvedItems.length - excluded.size} blocks to my calendar
-        </button>
+          Apply {resolvedItems.length - excluded.size} blocks
+        </Button>
       </div>
     </div>
   );

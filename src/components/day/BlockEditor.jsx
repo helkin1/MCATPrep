@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
-import { Modal } from "@/components/common/Modal";
 import { Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  Button,
+  Input,
+  Textarea,
+  Select,
+  Label,
+} from "@/components/ui";
 
 export function BlockEditor({ open, onClose, block, onSave, onDelete, categories }) {
   const [draft, setDraft] = useState(block || null);
@@ -13,106 +23,106 @@ export function BlockEditor({ open, onClose, block, onSave, onDelete, categories
 
   const update = (patch) => setDraft((d) => ({ ...d, ...patch }));
 
+  const invalidEnd = draft.end <= draft.start;
+
   const save = (e) => {
     e?.preventDefault?.();
-    if (!draft.start || !draft.end) return;
-    if (draft.end <= draft.start) return;
+    if (!draft.start || !draft.end || invalidEnd) return;
     onSave(draft);
   };
 
   return (
-    <Modal open={open} onClose={onClose}>
-      <form onSubmit={save} className="space-y-3">
-        <h2 className="text-base font-semibold">{block.id ? "Edit block" : "New block"}</h2>
+    <Dialog open={open} onClose={onClose}>
+      <form onSubmit={save}>
+        <DialogHeader>
+          <DialogTitle>{block.id ? "Edit block" : "New block"}</DialogTitle>
+        </DialogHeader>
 
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">Title</label>
-          <input
-            type="text"
-            value={draft.title || ""}
-            onChange={(e) => update({ title: e.target.value })}
-            placeholder="e.g., CARS practice passages"
-            autoFocus
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-3">
           <div>
-            <label className="block text-xs text-zinc-400 mb-1">Start</label>
-            <input
-              type="time"
-              value={draft.start}
-              onChange={(e) => update({ start: e.target.value })}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm"
+            <Label>Title</Label>
+            <Input
+              type="text"
+              value={draft.title || ""}
+              onChange={(e) => update({ title: e.target.value })}
+              placeholder="e.g., CARS practice passages"
+              autoFocus
             />
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Start</Label>
+              <Input
+                type="time"
+                value={draft.start}
+                onChange={(e) => update({ start: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>End</Label>
+              <Input
+                type="time"
+                value={draft.end}
+                onChange={(e) => update({ end: e.target.value })}
+                invalid={invalidEnd}
+              />
+              {invalidEnd && (
+                <div className="mt-1 text-[12px] text-danger">
+                  End must be after start.
+                </div>
+              )}
+            </div>
+          </div>
+
           <div>
-            <label className="block text-xs text-zinc-400 mb-1">End</label>
-            <input
-              type="time"
-              value={draft.end}
-              onChange={(e) => update({ end: e.target.value })}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm"
+            <Label>Category</Label>
+            <Select
+              value={draft.category}
+              onChange={(e) => update({ category: e.target.value })}
+            >
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div>
+            <Label>Notes</Label>
+            <Textarea
+              rows={2}
+              value={draft.notes || ""}
+              onChange={(e) => update({ notes: e.target.value })}
+              placeholder="Resources, goals, etc."
             />
           </div>
         </div>
 
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">Category</label>
-          <select
-            value={draft.category}
-            onChange={(e) => update({ category: e.target.value })}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm"
-          >
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">Notes</label>
-          <textarea
-            rows={2}
-            value={draft.notes || ""}
-            onChange={(e) => update({ notes: e.target.value })}
-            placeholder="Resources, goals, etc."
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none"
-          />
-        </div>
-
-        <div className="flex items-center justify-between pt-2">
+        <DialogFooter className="justify-between">
           {block.id ? (
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => onDelete(block.id)}
-              className="flex items-center gap-1.5 text-sm text-red-400 hover:bg-red-900/30 px-2 py-1.5 rounded-md"
+              className="text-danger hover:text-danger hover:bg-[color:var(--danger-soft)]"
             >
               <Trash2 size={14} /> Delete
-            </button>
+            </Button>
           ) : (
             <span />
           )}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-md text-sm text-zinc-300 hover:bg-zinc-800"
-            >
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="ghost" onClick={onClose}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-md text-sm"
-            >
+            </Button>
+            <Button type="submit" disabled={invalidEnd}>
               Save
-            </button>
+            </Button>
           </div>
-        </div>
+        </DialogFooter>
       </form>
-    </Modal>
+    </Dialog>
   );
 }

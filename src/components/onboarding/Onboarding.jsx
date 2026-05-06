@@ -3,13 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { PlanUploader } from "./PlanUploader";
 import { PlanPreview } from "./PlanPreview";
 import { dayKey, uid } from "@/lib/time";
+import { Button, Input, Label } from "@/components/ui";
+import { cn } from "@/lib/utils";
 
-/**
- * Three steps:
- *   1. Set MCAT exam date
- *   2. Optionally upload existing plan → Claude parser
- *   3. Preview parsed blocks → commit to days blob
- */
 export function Onboarding({ profile, updateProfile, days, bulkReplace }) {
   const navigate = useNavigate();
   const [step, setStep] = useState(profile?.exam_date ? 2 : 1);
@@ -39,7 +35,6 @@ export function Onboarding({ profile, updateProfile, days, bulkReplace }) {
   };
 
   const commit = async (items) => {
-    // Merge into days blob
     const next = { ...days };
     for (const it of items) {
       if (!next[it.date]) next[it.date] = { blocks: [], todos: [] };
@@ -63,67 +58,107 @@ export function Onboarding({ profile, updateProfile, days, bulkReplace }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-6">
-        <div>
-          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">
-            Step {step} of 3
-          </div>
-          <h1 className="text-xl font-semibold tracking-tight">
-            {step === 1 && "When is your MCAT?"}
-            {step === 2 && "Got an existing plan?"}
-            {step === 3 && "Review your plan"}
-          </h1>
+    <div className="relative min-h-screen flex items-center justify-center px-4 py-10 bg-bg overflow-hidden">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-50"
+        style={{
+          background:
+            "radial-gradient(900px 500px at 50% -10%, rgba(124,156,255,0.10), transparent 60%)",
+        }}
+      />
+
+      <div className="relative w-full max-w-2xl">
+        {/* Brand */}
+        <div className="flex items-center gap-2 mb-6">
+          <div className="w-5 h-5 rounded-[5px] bg-gradient-to-br from-accent to-accent-strong shadow-sm" />
+          <span className="font-display text-[13px] font-semibold tracking-tight text-text-1">
+            MCAT Prep
+          </span>
         </div>
 
-        {step === 1 && (
-          <div className="space-y-4">
-            <p className="text-sm text-zinc-400">
-              We use this to set your countdown and limit your calendar to dates leading up to it.
-            </p>
-            <input
-              type="date"
-              value={examDate}
-              min={dayKey(new Date())}
-              onChange={(e) => setExamDate(e.target.value)}
-              className="bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm"
-            />
-            <div className="flex justify-end">
-              <button
-                disabled={!examDate || busy}
-                onClick={saveExamDate}
-                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-md text-sm"
-              >
-                Continue →
-              </button>
+        <div className="bg-surface-1/80 backdrop-blur-xl border border-border rounded-2xl p-7 shadow-xl space-y-6">
+          {/* Progress dots */}
+          <div className="flex items-center gap-2">
+            {[1, 2, 3].map((n) => (
+              <div
+                key={n}
+                className={cn(
+                  "h-1 rounded-full transition-[width,background] duration-[var(--dur-base)] ease-[var(--ease-out)]",
+                  n === step
+                    ? "w-8 bg-accent"
+                    : n < step
+                    ? "w-4 bg-accent/60"
+                    : "w-4 bg-surface-3"
+                )}
+              />
+            ))}
+            <span className="ml-2 text-[11px] text-text-3 tabular tracking-[0.04em] uppercase">
+              Step {step} of 3
+            </span>
+          </div>
+
+          <div>
+            <h1 className="font-display text-[26px] font-semibold tracking-tight text-text-1 leading-tight">
+              {step === 1 && "When is your MCAT?"}
+              {step === 2 && "Got an existing plan?"}
+              {step === 3 && "Review your plan"}
+            </h1>
+          </div>
+
+          {step === 1 && (
+            <div className="space-y-5">
+              <p className="text-[13px] text-text-2 leading-relaxed">
+                We'll use this to set your countdown and limit your calendar to
+                dates leading up to it.
+              </p>
+              <div className="max-w-[240px]">
+                <Label>Exam date</Label>
+                <Input
+                  type="date"
+                  value={examDate}
+                  min={dayKey(new Date())}
+                  onChange={(e) => setExamDate(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  disabled={!examDate || busy}
+                  onClick={saveExamDate}
+                  size="lg"
+                >
+                  Continue
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {step === 2 && (
-          <div className="space-y-4">
-            <p className="text-sm text-zinc-400">
-              Paste text/spreadsheet, drop a screenshot, or upload a PDF — Claude will turn it into
-              calendar blocks you can review and edit before saving.
-            </p>
-            <PlanUploader
-              onParsed={(p) => {
-                setParsed(p);
-                setStep(3);
-              }}
-              onSkip={finish}
+          {step === 2 && (
+            <div className="space-y-5">
+              <p className="text-[13px] text-text-2 leading-relaxed">
+                Paste text or a spreadsheet, drop a screenshot, or upload a PDF —
+                Claude will turn it into calendar blocks you can review and edit
+                before saving.
+              </p>
+              <PlanUploader
+                onParsed={(p) => {
+                  setParsed(p);
+                  setStep(3);
+                }}
+                onSkip={finish}
+              />
+            </div>
+          )}
+
+          {step === 3 && parsed && (
+            <PlanPreview
+              parsed={parsed}
+              onBack={() => setStep(2)}
+              onCommit={commit}
+              defaultStartDate={dayKey(new Date())}
             />
-          </div>
-        )}
-
-        {step === 3 && parsed && (
-          <PlanPreview
-            parsed={parsed}
-            onBack={() => setStep(2)}
-            onCommit={commit}
-            defaultStartDate={dayKey(new Date())}
-          />
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

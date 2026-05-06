@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { signIn, signUp, resetPassword } from "@/lib/supabase";
+import { Button, Input, Label } from "@/components/ui";
 
 export function SignIn() {
-  const [mode, setMode] = useState("signin"); // signin | signup | reset
+  const [mode, setMode] = useState("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
@@ -33,69 +34,119 @@ export function SignIn() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="relative min-h-screen flex items-center justify-center px-4 bg-bg overflow-hidden">
+      {/* Soft gradient mesh — atmospheric, not loud */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-60"
+        style={{
+          background:
+            "radial-gradient(800px 480px at 20% 10%, rgba(124,156,255,0.10), transparent 60%), radial-gradient(700px 420px at 85% 110%, rgba(95,211,148,0.06), transparent 60%)",
+        }}
+      />
+
       <form
         onSubmit={submit}
-        className="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4"
+        className="relative w-full max-w-[400px] bg-surface-1/80 backdrop-blur-xl border border-border rounded-2xl p-7 shadow-xl space-y-5"
       >
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">MCAT Prep Planner</h1>
-          <p className="text-sm text-zinc-400 mt-1">
-            {mode === "signin" && "Sign in to continue."}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-accent to-accent-strong shadow-sm" />
+            <span className="font-display text-[14px] font-semibold tracking-tight text-text-1">
+              MCAT Prep
+            </span>
+          </div>
+          <h1 className="font-display text-[24px] font-semibold tracking-tight text-text-1 leading-tight">
+            {mode === "signin" && "Welcome back."}
             {mode === "signup" && "Create your account."}
             {mode === "reset" && "Reset your password."}
+          </h1>
+          <p className="text-[13px] text-text-2 leading-relaxed">
+            {mode === "signin" && "Plan every minute to MCAT day."}
+            {mode === "signup" && "A focused planner from now until exam day."}
+            {mode === "reset" && "We'll email you a reset link."}
           </p>
         </div>
 
         <div className="space-y-3">
           <div>
-            <label className="block text-xs text-zinc-400 mb-1">Email</label>
-            <input
+            <Label>Email</Label>
+            <Input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none"
+              placeholder="you@example.com"
+              autoComplete="email"
             />
           </div>
           {mode !== "reset" && (
             <div>
-              <label className="block text-xs text-zinc-400 mb-1">Password</label>
-              <input
+              <Label>Password</Label>
+              <Input
                 type="password"
                 required
                 minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none"
+                placeholder="••••••••"
+                autoComplete={mode === "signin" ? "current-password" : "new-password"}
               />
             </div>
           )}
         </div>
 
-        {error && <div className="text-sm text-red-400 bg-red-900/30 border border-red-900/60 rounded-md px-3 py-2">{error}</div>}
-        {info && <div className="text-sm text-emerald-400 bg-emerald-900/30 border border-emerald-900/60 rounded-md px-3 py-2">{info}</div>}
+        {error && (
+          <div className="text-[12px] text-danger bg-[color:var(--danger-soft)] border border-danger/30 rounded-md px-3 py-2">
+            {error}
+          </div>
+        )}
+        {info && (
+          <div className="text-[12px] text-success bg-[color:var(--success-soft)] border border-success/30 rounded-md px-3 py-2">
+            {info}
+          </div>
+        )}
 
-        <button
+        <Button
           type="submit"
+          variant="primary"
+          size="lg"
           disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium py-2 rounded-md text-sm transition-colors"
+          className="w-full"
         >
-          {loading ? "…" : mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset email"}
-        </button>
+          {loading
+            ? "…"
+            : mode === "signin"
+            ? "Sign in"
+            : mode === "signup"
+            ? "Create account"
+            : "Send reset email"}
+        </Button>
 
-        <div className="flex items-center justify-between text-xs text-zinc-400 pt-1">
+        <div className="flex items-center justify-between text-[12px] text-text-2 pt-1">
           {mode === "signin" ? (
             <>
-              <button type="button" className="hover:text-zinc-100" onClick={() => setMode("signup")}>
+              <button
+                type="button"
+                className="hover:text-text-1 transition-colors"
+                onClick={() => setMode("signup")}
+              >
                 Create account
               </button>
-              <button type="button" className="hover:text-zinc-100" onClick={() => setMode("reset")}>
+              <button
+                type="button"
+                className="hover:text-text-1 transition-colors"
+                onClick={() => setMode("reset")}
+              >
                 Forgot password?
               </button>
             </>
           ) : (
-            <button type="button" className="hover:text-zinc-100" onClick={() => setMode("signin")}>
+            <button
+              type="button"
+              className="hover:text-text-1 transition-colors"
+              onClick={() => setMode("signin")}
+            >
               ← Back to sign in
             </button>
           )}

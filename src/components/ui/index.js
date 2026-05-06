@@ -17,4 +17,5 @@ export {
 } from "./Dialog";
 export { Tooltip } from "./Tooltip";
 export { ToastProvider, useToast } from "./Toast";
+export { ConfirmProvider, useConfirm } from "./Confirm";
 export { Segmented } from "./Segmented";

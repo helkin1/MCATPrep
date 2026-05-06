@@ -1,9 +1,10 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Calendar, Clock, Settings, LogOut } from "lucide-react";
+import { Calendar, Clock, Settings, LogOut, Moon, Sun } from "lucide-react";
 import { signOut } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui";
+import { useTheme } from "@/hooks/useTheme";
 
 const NAV = [
   { to: "/", label: "Month", icon: Calendar, match: (p) => p === "/" },
@@ -48,6 +49,7 @@ export function TopBar({ examDate }) {
   const navRef = useRef(null);
   const itemRefs = useRef({});
   const [pill, setPill] = useState(null); // { left, width }
+  const { theme, toggle: toggleTheme } = useTheme();
 
   // Re-position the sliding pill underneath the active nav item.
   useLayoutEffect(() => {
@@ -109,6 +111,18 @@ export function TopBar({ examDate }) {
 
       {/* User actions */}
       <div className="flex items-center gap-1">
+        <Tooltip
+          label={theme === "light" ? "Dark mode" : "Light mode"}
+          side="bottom"
+        >
+          <button
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            className="inline-flex items-center justify-center h-8 w-8 rounded-md text-text-2 hover:text-text-1 hover:bg-surface-2 transition-colors"
+          >
+            {theme === "light" ? <Moon size={14} /> : <Sun size={14} />}
+          </button>
+        </Tooltip>
         <Tooltip label="Sign out" side="bottom">
           <button
             onClick={() => signOut()}

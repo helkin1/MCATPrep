@@ -6,7 +6,7 @@ import { Sidebar } from "./Sidebar";
 import { BlockEditor } from "./BlockEditor";
 import { addDays, dayKey, parseDayKey, todayKey, uid } from "@/lib/time";
 import { resolveCategories } from "@/lib/categories";
-import { Button } from "@/components/ui";
+import { Button, useConfirm, useToast } from "@/components/ui";
 
 export function DayView({ days, settings, examDate, upsertBlock, deleteBlock, setDayTodos, templates, persistTemplates }) {
   const navigate = useNavigate();
@@ -22,6 +22,8 @@ export function DayView({ days, settings, examDate, upsertBlock, deleteBlock, se
   );
 
   const [editing, setEditing] = useState(null);
+  const { confirm, prompt } = useConfirm();
+  const { toast } = useToast();
 
   const dateObj = parseDayKey(key);
   const weekday = dateObj.toLocaleDateString(undefined, { weekday: "long" });
@@ -68,8 +70,14 @@ export function DayView({ days, settings, examDate, upsertBlock, deleteBlock, se
     setEditing(null);
   };
 
-  const saveAsTemplate = () => {
-    const name = window.prompt("Template name", `${weekday} blocks`);
+  const saveAsTemplate = async () => {
+    const name = await prompt({
+      title: "Save as template",
+      description: "Re-apply these blocks to any other day later.",
+      label: "Template name",
+      defaultValue: `${weekday} blocks`,
+      placeholder: "e.g., Heavy CARS day",
+    });
     if (!name) return;
     const tpl = {
       id: uid(),
@@ -77,13 +85,20 @@ export function DayView({ days, settings, examDate, upsertBlock, deleteBlock, se
       blocks: blocks.map(({ id, ...rest }) => rest),
     };
     persistTemplates({ ...templates, daily: [...(templates.daily || []), tpl] });
+    toast({ variant: "success", title: "Template saved" });
   };
 
-  const applyTemplate = (tpl) => {
-    if (!confirm(`Apply "${tpl.name}" — this will add ${tpl.blocks.length} blocks to ${key}.`)) return;
+  const applyTemplate = async (tpl) => {
+    const ok = await confirm({
+      title: `Apply "${tpl.name}"?`,
+      description: `Adds ${tpl.blocks.length} blocks to ${monthDay}.`,
+      confirmLabel: "Apply",
+    });
+    if (!ok) return;
     for (const b of tpl.blocks) {
       upsertBlock(key, { ...b, id: uid() });
     }
+    toast({ variant: "success", title: "Template applied" });
   };
 
   return (
