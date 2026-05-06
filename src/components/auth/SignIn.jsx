@@ -53,7 +53,7 @@ export function SignIn() {
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-md bg-gradient-to-br from-accent to-accent-strong shadow-sm" />
             <span className="font-display text-[14px] font-semibold tracking-tight text-text-1">
-              MCAT Prep
+              Atara's MCAT Prep
             </span>
           </div>
           <h1 className="font-display text-[24px] font-semibold tracking-tight text-text-1 leading-tight">

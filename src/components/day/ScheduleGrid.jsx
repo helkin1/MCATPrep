@@ -67,8 +67,12 @@ export function ScheduleGrid({ blocks, categories, onCreate, onUpdate, onEdit })
     if (e.button !== 0) return;
     e.stopPropagation();
     e.preventDefault();
-    const startBlockMin = timeToMinutes(block.start);
-    const endBlockMin = timeToMinutes(block.end);
+    // All interaction state is stored in grid-offset minutes (minutes from
+    // START_HOUR). Block.start/end are absolute times of day, so subtract
+    // the grid origin here to keep units consistent across move, resize,
+    // ghost rendering, and the final time write-back in onPointerUp.
+    const startBlockMin = timeToMinutes(block.start) - START_HOUR * 60;
+    const endBlockMin = timeToMinutes(block.end) - START_HOUR * 60;
     const grabMin = yToMinutes(e.clientY);
     setInteraction({
       type: mode,
@@ -228,7 +232,7 @@ export function ScheduleGrid({ blocks, categories, onCreate, onUpdate, onEdit })
             <div
               key={b.id}
               className={cn(
-                "absolute left-1 right-1 rounded-md cursor-grab active:cursor-grabbing overflow-hidden",
+                "group absolute left-1 right-1 rounded-md cursor-grab active:cursor-grabbing overflow-hidden",
                 "transition-shadow duration-[var(--dur-fast)] ease-[var(--ease-out)]",
                 "hover:shadow-md",
                 isMine && "opacity-60"
@@ -256,11 +260,13 @@ export function ScheduleGrid({ blocks, categories, onCreate, onUpdate, onEdit })
                   </div>
                 )}
               </div>
-              {/* Resize handle */}
+              {/* Resize handle — visible on hover so users know where to grab. */}
               <div
                 onPointerDown={(e) => onBlockPointerDown(e, b, "resize")}
-                className="absolute left-0 right-0 bottom-0 h-2 cursor-ns-resize"
-              />
+                className="absolute left-0 right-0 bottom-0 h-2 cursor-ns-resize flex items-end justify-center pb-[2px] opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <div className="w-8 h-[3px] rounded-full bg-text-2/50" />
+              </div>
             </div>
           );
         })}
