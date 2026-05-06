@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+html, body, #root { height: 100%; }
+body { margin: 0; }
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #2a3040; border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: #3a4053; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* Hide number arrows */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+
+/* Prevent text selection during drag interactions */
+.no-select { user-select: none; -webkit-user-select: none; }
