@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { formatHour, formatTimeRange, minutesToTime, timeToMinutes } from "@/lib/time";
-import { getCategory, textOn } from "@/lib/categories";
+import { getCategory } from "@/lib/categories";
 import { cn } from "@/lib/utils";
 
 const START_HOUR = 5;
@@ -19,27 +19,40 @@ function pxToMinutes(px) {
   return Math.max(0, Math.min(HOURS * 60, (px / PX_PER_HOUR) * 60));
 }
 
+function tint(hex, alpha) {
+  const c = (hex || "#888").replace("#", "");
+  if (c.length !== 6) return `rgba(136,136,136,${alpha})`;
+  const r = parseInt(c.slice(0, 2), 16);
+  const g = parseInt(c.slice(2, 4), 16);
+  const b = parseInt(c.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 /**
- * Google-Calendar-style schedule grid with:
+ * Schedule grid:
  *   - Drag empty area to create a block
- *   - Drag existing block body to move it (snaps to 15min)
- *   - Drag bottom edge of a block to resize
+ *   - Drag block body to move (snaps to 15min)
+ *   - Drag bottom edge to resize
  *   - Click a block to edit
  */
 export function ScheduleGrid({ blocks, categories, onCreate, onUpdate, onEdit }) {
   const gridRef = useRef(null);
-  const [interaction, setInteraction] = useState(null); // { type, blockId, startMin, ghost }
+  const [interaction, setInteraction] = useState(null);
+  const [now, setNow] = useState(() => new Date());
 
-  // Helper to convert pointer Y to minutes-from-START_HOUR
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   const yToMinutes = (clientY) => {
     const rect = gridRef.current.getBoundingClientRect();
     return pxToMinutes(clientY - rect.top);
   };
 
-  // ── Begin drag-to-create ─────────────────────────────
   const onBgPointerDown = (e) => {
     if (e.button !== 0) return;
-    if (e.target !== e.currentTarget) return; // only fire when clicking blank area
+    if (e.target !== e.currentTarget) return;
     e.preventDefault();
     const startMin = snap(yToMinutes(e.clientY));
     setInteraction({
@@ -50,7 +63,6 @@ export function ScheduleGrid({ blocks, categories, onCreate, onUpdate, onEdit })
     gridRef.current.setPointerCapture(e.pointerId);
   };
 
-  // ── Begin block move/resize ──────────────────────────
   const onBlockPointerDown = (e, block, mode) => {
     if (e.button !== 0) return;
     e.stopPropagation();
@@ -59,7 +71,7 @@ export function ScheduleGrid({ blocks, categories, onCreate, onUpdate, onEdit })
     const endBlockMin = timeToMinutes(block.end);
     const grabMin = yToMinutes(e.clientY);
     setInteraction({
-      type: mode, // "move" | "resize"
+      type: mode,
       blockId: block.id,
       origStart: startBlockMin,
       origEnd: endBlockMin,
@@ -107,14 +119,12 @@ export function ScheduleGrid({ blocks, categories, onCreate, onUpdate, onEdit })
 
     if (type === "create") {
       const dur = ghost.endMin - ghost.startMin;
-      // Treat very short drags as click-to-create-default
       if (dur >= SNAP_MINUTES) {
         onCreate({
           start: minutesToTime(ghost.startMin + START_HOUR * 60),
           end: minutesToTime(ghost.endMin + START_HOUR * 60),
         });
       } else {
-        // Default 1-hour block
         onCreate({
           start: minutesToTime(ghost.startMin + START_HOUR * 60),
           end: minutesToTime(ghost.startMin + START_HOUR * 60 + 60),
@@ -127,7 +137,6 @@ export function ScheduleGrid({ blocks, categories, onCreate, onUpdate, onEdit })
           end: minutesToTime(ghost.endMin + START_HOUR * 60),
         });
       } else if (type === "move") {
-        // No movement → treat as click → open editor
         onEdit(interaction.blockId);
       }
     }
@@ -142,6 +151,11 @@ export function ScheduleGrid({ blocks, categories, onCreate, onUpdate, onEdit })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interaction]);
 
+  // Now indicator (only shown if within visible window)
+  const nowMin = now.getHours() * 60 + now.getMinutes() - START_HOUR * 60;
+  const showNow = nowMin >= 0 && nowMin <= HOURS * 60;
+  const nowTop = (nowMin / 60) * PX_PER_HOUR;
+
   return (
     <div className="flex h-full overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
       {/* Hour labels */}
@@ -149,8 +163,8 @@ export function ScheduleGrid({ blocks, categories, onCreate, onUpdate, onEdit })
         {Array.from({ length: HOURS + 1 }, (_, i) => START_HOUR + i).map((h) => (
           <div
             key={h}
-            className="absolute right-2 text-[11px] text-zinc-500"
-            style={{ top: (h - START_HOUR) * PX_PER_HOUR - 6 }}
+            className="absolute right-3 font-mono tabular text-[10px] text-text-3 uppercase tracking-wider"
+            style={{ top: (h - START_HOUR) * PX_PER_HOUR - 5 }}
           >
             {formatHour(h)}
           </div>
@@ -160,27 +174,46 @@ export function ScheduleGrid({ blocks, categories, onCreate, onUpdate, onEdit })
       {/* Grid + blocks */}
       <div
         ref={gridRef}
-        className="flex-1 relative border-l border-zinc-800 no-select"
+        className="flex-1 relative no-select"
         style={{ height: TOTAL_PX }}
         onPointerDown={onBgPointerDown}
         onPointerMove={onPointerMove}
       >
-        {/* Hour lines */}
+        {/* Hour lines — soft */}
         {Array.from({ length: HOURS }, (_, i) => i).map((i) => (
           <div
             key={i}
-            className="absolute left-0 right-0 border-t border-zinc-800"
-            style={{ top: i * PX_PER_HOUR }}
+            className="absolute left-0 right-0 pointer-events-none"
+            style={{
+              top: i * PX_PER_HOUR,
+              borderTop: "1px solid rgba(255,255,255,0.05)",
+            }}
           />
         ))}
-        {/* Half-hour lines */}
+        {/* Half-hour ticks — even softer */}
         {Array.from({ length: HOURS }, (_, i) => i).map((i) => (
           <div
             key={`half-${i}`}
-            className="absolute left-0 right-0 border-t border-dashed border-zinc-900"
-            style={{ top: i * PX_PER_HOUR + PX_PER_HOUR / 2 }}
+            className="absolute left-0 right-0 pointer-events-none"
+            style={{
+              top: i * PX_PER_HOUR + PX_PER_HOUR / 2,
+              borderTop: "1px dashed rgba(255,255,255,0.025)",
+            }}
           />
         ))}
+
+        {/* Now indicator */}
+        {showNow && (
+          <div
+            className="absolute left-0 right-0 pointer-events-none z-10"
+            style={{ top: nowTop }}
+          >
+            <div className="relative">
+              <div className="absolute -left-1 -top-[3px] w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_0_3px_rgba(124,156,255,0.18)]" />
+              <div className="border-t border-accent/70" />
+            </div>
+          </div>
+        )}
 
         {/* Blocks */}
         {blocks.map((b) => {
@@ -190,38 +223,43 @@ export function ScheduleGrid({ blocks, categories, onCreate, onUpdate, onEdit })
           const top = (startMin / 60) * PX_PER_HOUR;
           const height = ((endMin - startMin) / 60) * PX_PER_HOUR;
           if (height <= 0) return null;
-          const isDragging =
-            interaction && (interaction.blockId === b.id || (interaction.type === "create"));
           const isMine = interaction?.blockId === b.id;
           return (
             <div
               key={b.id}
               className={cn(
-                "absolute left-1 right-1 rounded-md px-2 py-1 cursor-grab active:cursor-grabbing shadow",
+                "absolute left-1 right-1 rounded-md cursor-grab active:cursor-grabbing overflow-hidden",
+                "transition-shadow duration-[var(--dur-fast)] ease-[var(--ease-out)]",
+                "hover:shadow-md",
                 isMine && "opacity-60"
               )}
               style={{
                 top,
                 height: Math.max(height - 2, 18),
-                background: cat.color,
-                color: textOn(cat.color),
+                background: tint(cat.color, 0.16),
+                borderLeft: `3px solid ${cat.color}`,
               }}
               onPointerDown={(e) => onBlockPointerDown(e, b, "move")}
             >
-              <div className="text-[12px] font-semibold leading-tight truncate">
-                {b.title || cat.label}
+              <div className="px-2.5 py-1 h-full flex flex-col">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[12px] font-semibold leading-tight truncate text-text-1">
+                    {b.title || cat.label}
+                  </div>
+                  <div className="font-mono tabular text-[10px] text-text-2 flex-shrink-0">
+                    {formatTimeRange(b.start, b.end)}
+                  </div>
+                </div>
+                {b.notes && height > 50 && (
+                  <div className="text-[11px] text-text-2 mt-0.5 line-clamp-2">
+                    {b.notes}
+                  </div>
+                )}
               </div>
-              <div className="text-[10px] opacity-80 leading-tight">
-                {formatTimeRange(b.start, b.end)}
-              </div>
-              {b.notes && height > 50 && (
-                <div className="text-[11px] opacity-80 mt-0.5 line-clamp-2">{b.notes}</div>
-              )}
               {/* Resize handle */}
               <div
                 onPointerDown={(e) => onBlockPointerDown(e, b, "resize")}
                 className="absolute left-0 right-0 bottom-0 h-2 cursor-ns-resize"
-                style={{ background: "rgba(0,0,0,0.0)" }}
               />
             </div>
           );
@@ -231,8 +269,10 @@ export function ScheduleGrid({ blocks, categories, onCreate, onUpdate, onEdit })
         {interaction && interaction.ghost && (
           <div
             className={cn(
-              "absolute left-1 right-1 rounded-md border-2 border-dashed pointer-events-none",
-              interaction.type === "create" ? "border-blue-400 bg-blue-400/20" : "border-white/70 bg-white/5"
+              "absolute left-1 right-1 rounded-md pointer-events-none border-2 border-dashed",
+              interaction.type === "create"
+                ? "border-accent bg-accent-soft"
+                : "border-text-2/60 bg-surface-3/50"
             )}
             style={{
               top: (interaction.ghost.startMin / 60) * PX_PER_HOUR,
@@ -240,7 +280,7 @@ export function ScheduleGrid({ blocks, categories, onCreate, onUpdate, onEdit })
                 ((interaction.ghost.endMin - interaction.ghost.startMin) / 60) * PX_PER_HOUR,
             }}
           >
-            <div className="text-[10px] px-2 py-0.5 text-white/90">
+            <div className="font-mono tabular text-[10px] px-2 py-0.5 text-text-1">
               {minutesToTime(interaction.ghost.startMin + START_HOUR * 60)} –{" "}
               {minutesToTime(interaction.ghost.endMin + START_HOUR * 60)}
             </div>

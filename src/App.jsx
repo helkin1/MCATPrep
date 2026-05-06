@@ -13,13 +13,25 @@ import { supabase } from "@/lib/supabase";
 
 function MissingEnv() {
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="max-w-md bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-        <h1 className="text-lg font-semibold mb-2">Setup required</h1>
-        <p className="text-sm text-zinc-400">
-          Missing Supabase env vars. Set <code className="bg-zinc-800 px-1 rounded">VITE_SUPABASE_URL</code>{" "}
-          and <code className="bg-zinc-800 px-1 rounded">VITE_SUPABASE_ANON_KEY</code> in{" "}
-          <code className="bg-zinc-800 px-1 rounded">.env.local</code> (and Vercel for production), then restart.
+    <div className="min-h-screen flex items-center justify-center px-4 bg-bg">
+      <div className="max-w-md bg-surface-1 border border-border rounded-xl p-6 shadow-lg">
+        <h1 className="font-display text-[18px] font-semibold tracking-tight mb-2 text-text-1">
+          Setup required
+        </h1>
+        <p className="text-[13px] text-text-2 leading-relaxed">
+          Missing Supabase env vars. Set{" "}
+          <code className="font-mono text-[12px] bg-surface-3 text-text-1 px-1.5 py-0.5 rounded">
+            VITE_SUPABASE_URL
+          </code>{" "}
+          and{" "}
+          <code className="font-mono text-[12px] bg-surface-3 text-text-1 px-1.5 py-0.5 rounded">
+            VITE_SUPABASE_ANON_KEY
+          </code>{" "}
+          in{" "}
+          <code className="font-mono text-[12px] bg-surface-3 text-text-1 px-1.5 py-0.5 rounded">
+            .env.local
+          </code>{" "}
+          (and Vercel for production), then restart.
         </p>
       </div>
     </div>
@@ -27,7 +39,20 @@ function MissingEnv() {
 }
 
 function Loading() {
-  return <div className="min-h-screen flex items-center justify-center text-zinc-500">Loading…</div>;
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-bg">
+      <div
+        className="w-6 h-6 rounded-md bg-gradient-to-br from-accent to-accent-strong opacity-80"
+        style={{ animation: "pulse-soft 1.4s var(--ease-in-out) infinite" }}
+      />
+      <style>{`
+        @keyframes pulse-soft {
+          0%, 100% { opacity: 0.4; transform: scale(0.9); }
+          50% { opacity: 1; transform: scale(1.05); }
+        }
+      `}</style>
+    </div>
+  );
 }
 
 export default function App() {

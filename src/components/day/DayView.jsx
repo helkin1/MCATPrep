@@ -6,6 +6,7 @@ import { Sidebar } from "./Sidebar";
 import { BlockEditor } from "./BlockEditor";
 import { addDays, dayKey, parseDayKey, todayKey, uid } from "@/lib/time";
 import { resolveCategories } from "@/lib/categories";
+import { Button } from "@/components/ui";
 
 export function DayView({ days, settings, examDate, upsertBlock, deleteBlock, setDayTodos, templates, persistTemplates }) {
   const navigate = useNavigate();
@@ -20,15 +21,16 @@ export function DayView({ days, settings, examDate, upsertBlock, deleteBlock, se
     [settings]
   );
 
-  const [editing, setEditing] = useState(null); // block being edited, or {} for new
+  const [editing, setEditing] = useState(null);
 
   const dateObj = parseDayKey(key);
-  const dateLabel = dateObj.toLocaleDateString(undefined, {
-    weekday: "long",
+  const weekday = dateObj.toLocaleDateString(undefined, { weekday: "long" });
+  const monthDay = dateObj.toLocaleDateString(undefined, {
     month: "long",
     day: "numeric",
-    year: "numeric",
   });
+  const year = dateObj.getFullYear();
+  const isToday = key === todayKey();
 
   const navDay = (delta) => {
     const next = addDays(dateObj, delta);
@@ -67,7 +69,7 @@ export function DayView({ days, settings, examDate, upsertBlock, deleteBlock, se
   };
 
   const saveAsTemplate = () => {
-    const name = window.prompt("Template name", `${dateLabel} blocks`);
+    const name = window.prompt("Template name", `${weekday} blocks`);
     if (!name) return;
     const tpl = {
       id: uid(),
@@ -85,39 +87,73 @@ export function DayView({ days, settings, examDate, upsertBlock, deleteBlock, se
   };
 
   return (
-    <div className="flex flex-col h-full bg-zinc-950">
-      <div className="flex items-center gap-2 px-5 py-2 border-b border-zinc-800 bg-zinc-900">
-        <button
+    <div className="flex flex-col h-full bg-bg">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-border bg-surface-1/60 backdrop-blur-md">
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => navigate("/")}
-          className="text-zinc-400 hover:text-zinc-100 px-2 py-1 rounded text-sm flex items-center gap-1"
+          className="-ml-2"
         >
           <ArrowLeft size={14} /> Month
-        </button>
-        <button onClick={() => navDay(-1)} className="p-1 hover:bg-zinc-800 rounded">
-          <ChevronLeft size={16} />
-        </button>
-        <button onClick={() => navDay(1)} className="p-1 hover:bg-zinc-800 rounded">
-          <ChevronRight size={16} />
-        </button>
-        <button
-          onClick={() => navigate(`/day/${todayKey()}`)}
-          className="text-zinc-400 hover:text-zinc-100 px-2 py-1 rounded text-sm"
-        >
-          Today
-        </button>
-        <h2 className="text-base font-semibold ml-3">{dateLabel}</h2>
+        </Button>
+
+        <div className="h-5 w-px bg-border-strong mx-1" />
+
+        {/* Date stepper — segmented look */}
+        <div className="inline-flex items-center bg-surface-2 border border-border rounded-md overflow-hidden">
+          <button
+            onClick={() => navDay(-1)}
+            aria-label="Previous day"
+            className="h-8 w-8 inline-flex items-center justify-center text-text-2 hover:text-text-1 hover:bg-surface-3 transition-colors"
+          >
+            <ChevronLeft size={14} />
+          </button>
+          <button
+            onClick={() => navigate(`/day/${todayKey()}`)}
+            className="h-8 px-3 text-[12px] font-medium text-text-2 hover:text-text-1 hover:bg-surface-3 border-x border-border transition-colors"
+          >
+            Today
+          </button>
+          <button
+            onClick={() => navDay(1)}
+            aria-label="Next day"
+            className="h-8 w-8 inline-flex items-center justify-center text-text-2 hover:text-text-1 hover:bg-surface-3 transition-colors"
+          >
+            <ChevronRight size={14} />
+          </button>
+        </div>
+
+        {/* Title block */}
+        <div className="ml-2">
+          <div className="font-display text-[20px] font-semibold tracking-tight text-text-1 leading-none">
+            {weekday}
+          </div>
+          <div className="text-[12px] text-text-3 tabular mt-0.5">
+            {monthDay}, {year}
+            {isToday && (
+              <span className="ml-2 inline-flex items-center gap-1 text-accent">
+                <span className="w-1 h-1 rounded-full bg-accent" /> Today
+              </span>
+            )}
+          </div>
+        </div>
+
         <div className="ml-auto flex items-center gap-2">
           {key === examDate && (
-            <span className="text-xs uppercase tracking-wide text-red-400 font-semibold">
+            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[color:var(--danger-soft)] text-danger text-[11px] uppercase tracking-[0.06em] font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-danger" />
               Exam day
             </span>
           )}
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => onCreate({ start: "09:00", end: "10:00" })}
-            className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-3 py-1.5 rounded-md flex items-center gap-1"
           >
             <Plus size={14} /> New block
-          </button>
+          </Button>
         </div>
       </div>
 

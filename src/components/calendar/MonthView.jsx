@@ -57,7 +57,7 @@ export function MonthView({ days, examDate, settings, onMoveBlock }) {
   const currentKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
 
   return (
-    <div ref={containerRef} className="overflow-y-auto h-full bg-zinc-950">
+    <div ref={containerRef} className="overflow-y-auto h-full bg-bg">
       {months.map(({ year, month }) => {
         const key = `${year}-${String(month + 1).padStart(2, "0")}`;
         const label = new Date(year, month, 1).toLocaleDateString(undefined, {
@@ -79,16 +79,23 @@ export function MonthView({ days, examDate, settings, onMoveBlock }) {
         );
       })}
       {examDate && (
-        <div className="px-5 py-8 text-center text-zinc-500 text-sm">
-          📅 Exam on{" "}
-          <strong className="text-zinc-300">
-            {new Date(examDate + "T00:00").toLocaleDateString(undefined, {
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </strong>
-          {" "}— calendar ends here. Good luck!
+        <div className="px-5 py-10 text-center">
+          <div className="inline-flex items-center gap-3 px-4 py-3 bg-surface-1 border border-border rounded-xl">
+            <div className="w-2 h-2 rounded-full bg-danger" />
+            <div className="text-left">
+              <div className="text-[11px] uppercase tracking-[0.08em] text-text-3">
+                Exam day
+              </div>
+              <div className="font-display text-[14px] font-semibold tabular text-text-1">
+                {new Date(examDate + "T00:00").toLocaleDateString(undefined, {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 text-[12px] text-text-3">Good luck.</div>
         </div>
       )}
     </div>
