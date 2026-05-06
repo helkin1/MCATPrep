@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MCAT Prep Planner</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1d2230;
+    --border: #262b3a;
+    --text: #e7ebf3;
+    --muted: #8a93a6;
+    --accent: #6aa9ff;
+    --accent-2: #8b5cf6;
+    --danger: #ef4444;
+    --success: #22c55e;
+
+    /* Category colors */
+    --cat-cars: #f59e0b;
+    --cat-bb:   #22c55e;
+    --cat-cp:   #3b82f6;
+    --cat-ps:   #ec4899;
+    --cat-test: #ef4444;
+    --cat-review: #a855f7;
+    --cat-exercise: #14b8a6;
+    --cat-meal: #eab308;
+    --cat-break: #64748b;
+    --cat-personal: #06b6d4;
+    --cat-sleep: #475569;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font-family: inherit; }
+  input, select, textarea {
+    font-family: inherit;
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 14px;
+    outline: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+
+  /* Layout */
+  .app {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+  }
+  header.top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .brand h1 {
+    font-size: 18px;
+    margin: 0;
+    letter-spacing: 0.3px;
+  }
+  .brand .countdown {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .brand .countdown strong { color: var(--accent); }
+
+  .top-actions { display: flex; gap: 8px; align-items: center; }
+  .btn {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 7px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 120ms;
+  }
+  .btn:hover { background: #232838; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #07101e; font-weight: 600; }
+  .btn.primary:hover { background: #84b8ff; }
+  .btn.ghost { background: transparent; }
+  .btn.danger { color: var(--danger); border-color: #3a2330; }
+  .btn.danger:hover { background: #2a1820; }
+
+  /* Main views */
+  main { overflow: hidden; }
+  .view { display: none; height: 100%; }
+  .view.active { display: block; }
+
+  /* Month view */
+  .month-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .month-toolbar .title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-right: auto;
+  }
+  .calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: minmax(110px, 1fr);
+    gap: 1px;
+    background: var(--border);
+    height: calc(100% - 90px);
+  }
+  .cal-head {
+    background: var(--panel);
+    padding: 8px 10px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+  }
+  .cal-cell {
+    background: var(--panel);
+    padding: 8px;
+    cursor: pointer;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: background 120ms;
+  }
+  .cal-cell:hover { background: #1a1e2a; }
+  .cal-cell.other-month { opacity: 0.45; }
+  .cal-cell.today .day-num {
+    background: var(--accent);
+    color: #07101e;
+    font-weight: 700;
+  }
+  .cal-cell .day-num {
+    align-self: flex-start;
+    font-size: 12px;
+    width: 22px;
+    height: 22px;
+    line-height: 22px;
+    text-align: center;
+    border-radius: 50%;
+  }
+  .cal-cell .events { display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+  .cal-event {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #07101e;
+    font-weight: 500;
+  }
+  .cal-event.more { background: transparent; color: var(--muted); padding-left: 0; }
+
+  /* Day view */
+  .day-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .day-toolbar .title { font-size: 16px; font-weight: 600; margin-right: auto; }
+  .day-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    height: calc(100% - 60px);
+    overflow: hidden;
+  }
+  .schedule {
+    overflow-y: auto;
+    position: relative;
+    padding: 10px 22px 40px 22px;
+  }
+  .schedule-grid {
+    position: relative;
+    border-left: 1px solid var(--border);
+  }
+  .hour-row {
+    height: 60px;
+    border-top: 1px dashed var(--border);
+    position: relative;
+  }
+  .hour-row:first-child { border-top: none; }
+  .hour-label {
+    position: absolute;
+    left: -64px;
+    top: -8px;
+    font-size: 11px;
+    color: var(--muted);
+    width: 60px;
+    text-align: right;
+  }
+  .blocks-layer {
+    position: absolute;
+    top: 0; left: 8px; right: 8px; bottom: 0;
+    pointer-events: none;
+  }
+  .block {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: var(--cat-personal);
+    color: #07101e;
+    padding: 6px 8px;
+    border-radius: 5px;
+    font-size: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.25);
+    border: 1px solid rgba(0,0,0,0.15);
+    transition: transform 90ms;
+  }
+  .block:hover { transform: translateY(-1px); }
+  .block .b-title { font-weight: 600; }
+  .block .b-time { font-size: 10px; opacity: 0.85; }
+  .block .b-notes { font-size: 11px; margin-top: 2px; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Sidebar */
+  .day-sidebar {
+    border-left: 1px solid var(--border);
+    background: var(--panel);
+    padding: 16px;
+    overflow-y: auto;
+  }
+  .day-sidebar h3 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+  }
+  .summary { margin-bottom: 16px; font-size: 13px; }
+  .summary .stat { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed var(--border); }
+  .summary .stat:last-child { border-bottom: none; }
+
+  .legend { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+  .legend .row { display: flex; align-items: center; gap: 8px; }
+  .legend .swatch { width: 12px; height: 12px; border-radius: 3px; }
+
+  .todo-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .todo-item {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+  .todo-item .text { flex: 1; }
+  .todo-item.done .text { text-decoration: line-through; color: var(--muted); }
+  .todo-item button { background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 14px; }
+  .todo-add { display: flex; gap: 6px; margin-bottom: 14px; }
+  .todo-add input { flex: 1; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    display: none; align-items: center; justify-content: center; z-index: 100;
+    backdrop-filter: blur(2px);
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    width: 420px;
+    max-width: calc(100vw - 32px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  }
+  .modal h2 { margin: 0 0 14px 0; font-size: 16px; }
+  .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+  .field label { font-size: 12px; color: var(--muted); }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+  .modal-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; }
+  .modal-actions .right-actions { display: flex; gap: 8px; }
+
+  /* Tag colors helper classes (background) */
+  .cat-cars { background: var(--cat-cars); }
+  .cat-bb   { background: var(--cat-bb); }
+  .cat-cp   { background: var(--cat-cp); }
+  .cat-ps   { background: var(--cat-ps); }
+  .cat-test { background: var(--cat-test); }
+  .cat-review { background: var(--cat-review); }
+  .cat-exercise { background: var(--cat-exercise); }
+  .cat-meal { background: var(--cat-meal); }
+  .cat-break { background: var(--cat-break); color: #fff !important; }
+  .cat-personal { background: var(--cat-personal); }
+  .cat-sleep { background: var(--cat-sleep); color: #fff !important; }
+
+  .empty-day { color: var(--muted); font-size: 13px; padding: 30px; text-align: center; }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: #2a3040; border-radius: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <h1>MCAT Prep Planner</h1>
+      <div class="countdown" id="countdown"></div>
+    </div>
+    <div class="top-actions">
+      <button class="btn ghost" id="exam-date-btn">Set exam date</button>
+      <button class="btn" id="view-month-btn">Month</button>
+      <button class="btn" id="view-day-btn">Day</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Month view -->
+    <section class="view active" id="month-view">
+      <div class="month-toolbar">
+        <button class="btn" id="prev-month">‹</button>
+        <button class="btn" id="next-month">›</button>
+        <button class="btn ghost" id="today-btn">Today</button>
+        <div class="title" id="month-title"></div>
+      </div>
+      <div class="calendar" id="calendar"></div>
+    </section>
+
+    <!-- Day view -->
+    <section class="view" id="day-view">
+      <div class="day-toolbar">
+        <button class="btn" id="prev-day">‹</button>
+        <button class="btn" id="next-day">›</button>
+        <button class="btn ghost" id="back-to-month">← Month</button>
+        <div class="title" id="day-title"></div>
+        <button class="btn primary" id="add-block-btn">+ Add block</button>
+      </div>
+      <div class="day-layout">
+        <div class="schedule">
+          <div class="schedule-grid" id="schedule-grid"></div>
+        </div>
+        <aside class="day-sidebar">
+          <h3>To-dos</h3>
+          <div class="todo-add">
+            <input type="text" id="todo-input" placeholder="Add a to-do…" />
+            <button class="btn primary" id="todo-add-btn">Add</button>
+          </div>
+          <div class="todo-list" id="todo-list"></div>
+
+          <h3>Daily summary</h3>
+          <div class="summary" id="day-summary"></div>
+
+          <h3>Categories</h3>
+          <div class="legend" id="legend"></div>
+        </aside>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Block modal -->
+<div class="modal-overlay" id="block-modal">
+  <div class="modal">
+    <h2 id="block-modal-title">Add block</h2>
+    <div class="field">
+      <label>Title</label>
+      <input type="text" id="b-title" placeholder="e.g., CARS practice passages" />
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Start</label>
+        <input type="time" id="b-start" />
+      </div>
+      <div class="field">
+        <label>End</label>
+        <input type="time" id="b-end" />
+      </div>
+    </div>
+    <div class="field">
+      <label>Category</label>
+      <select id="b-category">
+        <option value="cars">CARS</option>
+        <option value="bb">Bio / Biochem</option>
+        <option value="cp">Chem / Physics</option>
+        <option value="ps">Psych / Soc</option>
+        <option value="test">Practice test</option>
+        <option value="review">Review / Anki</option>
+        <option value="exercise">Exercise</option>
+        <option value="meal">Meal</option>
+        <option value="break">Break</option>
+        <option value="personal">Personal</option>
+        <option value="sleep">Sleep</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Notes (optional)</label>
+      <textarea id="b-notes" rows="2" placeholder="Resources, goals, etc."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn danger" id="b-delete" style="display:none">Delete</button>
+      <div class="right-actions">
+        <button class="btn ghost" id="b-cancel">Cancel</button>
+        <button class="btn primary" id="b-save">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============== State ============== */
+const STORAGE_KEY = 'mcatPrep.v1';
+const CATEGORIES = {
+  cars: { label: 'CARS', cls: 'cat-cars', studyish: true },
+  bb:   { label: 'Bio / Biochem', cls: 'cat-bb', studyish: true },
+  cp:   { label: 'Chem / Physics', cls: 'cat-cp', studyish: true },
+  ps:   { label: 'Psych / Soc', cls: 'cat-ps', studyish: true },
+  test: { label: 'Practice test', cls: 'cat-test', studyish: true },
+  review: { label: 'Review / Anki', cls: 'cat-review', studyish: true },
+  exercise: { label: 'Exercise', cls: 'cat-exercise' },
+  meal: { label: 'Meal', cls: 'cat-meal' },
+  break: { label: 'Break', cls: 'cat-break' },
+  personal: { label: 'Personal', cls: 'cat-personal' },
+  sleep: { label: 'Sleep', cls: 'cat-sleep' },
+};
+
+let state = loadState();
+let viewMonth = new Date(); viewMonth.setDate(1);
+let viewDay = new Date();
+let editingBlockId = null;
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return { days: {}, examDate: null };
+}
+function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+function dayKey(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function getDay(d) {
+  const k = dayKey(d);
+  if (!state.days[k]) state.days[k] = { blocks: [], todos: [] };
+  return state.days[k];
+}
+function uid() { return Math.random().toString(36).slice(2, 10); }
+
+/* ============== Countdown ============== */
+function renderCountdown() {
+  const el = document.getElementById('countdown');
+  if (!state.examDate) { el.innerHTML = '<em>No exam date set</em>'; return; }
+  const now = new Date(); now.setHours(0,0,0,0);
+  const exam = new Date(state.examDate); exam.setHours(0,0,0,0);
+  const days = Math.round((exam - now) / 86400000);
+  const dateStr = exam.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  if (days > 0)      el.innerHTML = `Exam: ${dateStr} — <strong>${days} days</strong> to go`;
+  else if (days === 0) el.innerHTML = `Exam: <strong>today</strong> — good luck!`;
+  else               el.innerHTML = `Exam was ${dateStr}`;
+}
+
+/* ============== Month view ============== */
+function renderMonth() {
+  const calendar = document.getElementById('calendar');
+  const title = document.getElementById('month-title');
+  calendar.innerHTML = '';
+  title.textContent = viewMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+  const dayLabels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  dayLabels.forEach(l => {
+    const h = document.createElement('div');
+    h.className = 'cal-head';
+    h.textContent = l;
+    calendar.appendChild(h);
+  });
+
+  const first = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
+  const startOffset = first.getDay();
+  const gridStart = new Date(first); gridStart.setDate(1 - startOffset);
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(gridStart); d.setDate(gridStart.getDate() + i);
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell';
+    if (d.getMonth() !== viewMonth.getMonth()) cell.classList.add('other-month');
+    if (d.getTime() === today.getTime()) cell.classList.add('today');
+
+    const num = document.createElement('div');
+    num.className = 'day-num';
+    num.textContent = d.getDate();
+    cell.appendChild(num);
+
+    const events = document.createElement('div');
+    events.className = 'events';
+    const day = state.days[dayKey(d)];
+    if (day && day.blocks && day.blocks.length) {
+      // Show top 3 "major" events: prefer studyish, then by start time
+      const sorted = [...day.blocks].sort((a,b) => {
+        const aS = CATEGORIES[a.category]?.studyish ? 0 : 1;
+        const bS = CATEGORIES[b.category]?.studyish ? 0 : 1;
+        if (aS !== bS) return aS - bS;
+        return a.start.localeCompare(b.start);
+      });
+      const shown = sorted.slice(0, 3);
+      shown.forEach(b => {
+        const e = document.createElement('div');
+        e.className = `cal-event ${CATEGORIES[b.category]?.cls || 'cat-personal'}`;
+        e.textContent = b.title || CATEGORIES[b.category]?.label || 'Untitled';
+        events.appendChild(e);
+      });
+      if (day.blocks.length > 3) {
+        const m = document.createElement('div');
+        m.className = 'cal-event more';
+        m.textContent = `+${day.blocks.length - 3} more`;
+        events.appendChild(m);
+      }
+    }
+    cell.appendChild(events);
+
+    cell.addEventListener('click', () => {
+      viewDay = new Date(d);
+      showView('day');
+    });
+    calendar.appendChild(cell);
+  }
+}
+
+/* ============== Day view ============== */
+const SCHEDULE_START_HOUR = 5;  // 5am
+const SCHEDULE_END_HOUR = 24;   // midnight
+const PX_PER_HOUR = 60;
+
+function renderDay() {
+  const title = document.getElementById('day-title');
+  title.textContent = viewDay.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+  const grid = document.getElementById('schedule-grid');
+  grid.innerHTML = '';
+  grid.style.marginLeft = '64px';
+
+  for (let h = SCHEDULE_START_HOUR; h < SCHEDULE_END_HOUR; h++) {
+    const row = document.createElement('div');
+    row.className = 'hour-row';
+    const label = document.createElement('div');
+    label.className = 'hour-label';
+    label.textContent = formatHour(h);
+    row.appendChild(label);
+    row.addEventListener('click', () => {
+      openBlockModal(null, { startHour: h });
+    });
+    grid.appendChild(row);
+  }
+
+  const blocksLayer = document.createElement('div');
+  blocksLayer.className = 'blocks-layer';
+  grid.appendChild(blocksLayer);
+
+  const day = getDay(viewDay);
+  day.blocks.forEach(b => {
+    const el = renderBlock(b);
+    if (el) blocksLayer.appendChild(el);
+  });
+
+  renderTodos();
+  renderSummary();
+  renderLegend();
+}
+
+function formatHour(h) {
+  const ampm = h < 12 || h === 24 ? 'am' : 'pm';
+  const hour = h === 0 || h === 24 ? 12 : (h > 12 ? h - 12 : h);
+  return `${hour} ${ampm}`;
+}
+
+function timeToMinutes(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function renderBlock(b) {
+  const startMin = timeToMinutes(b.start);
+  const endMin = timeToMinutes(b.end);
+  const top = ((startMin - SCHEDULE_START_HOUR * 60) / 60) * PX_PER_HOUR;
+  const height = ((endMin - startMin) / 60) * PX_PER_HOUR;
+  if (height <= 0) return null;
+  const el = document.createElement('div');
+  el.className = `block ${CATEGORIES[b.category]?.cls || 'cat-personal'}`;
+  el.style.top = `${top}px`;
+  el.style.height = `${Math.max(height - 2, 16)}px`;
+  el.innerHTML = `
+    <div class="b-title">${escapeHtml(b.title || CATEGORIES[b.category]?.label || 'Untitled')}</div>
+    <div class="b-time">${b.start} – ${b.end}</div>
+    ${b.notes ? `<div class="b-notes">${escapeHtml(b.notes)}</div>` : ''}
+  `;
+  el.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openBlockModal(b.id);
+  });
+  return el;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
+}
+
+/* ============== To-dos ============== */
+function renderTodos() {
+  const list = document.getElementById('todo-list');
+  list.innerHTML = '';
+  const day = getDay(viewDay);
+  if (!day.todos.length) {
+    const empty = document.createElement('div');
+    empty.style.color = 'var(--muted)';
+    empty.style.fontSize = '12px';
+    empty.textContent = 'No to-dos for this day yet.';
+    list.appendChild(empty);
+    return;
+  }
+  day.todos.forEach(t => {
+    const item = document.createElement('div');
+    item.className = 'todo-item' + (t.done ? ' done' : '');
+    item.innerHTML = `
+      <input type="checkbox" ${t.done ? 'checked' : ''} />
+      <div class="text">${escapeHtml(t.text)}</div>
+      <button title="Delete">×</button>
+    `;
+    item.querySelector('input').addEventListener('change', (e) => {
+      t.done = e.target.checked; saveState(); renderTodos();
+    });
+    item.querySelector('button').addEventListener('click', () => {
+      day.todos = day.todos.filter(x => x.id !== t.id);
+      saveState(); renderTodos();
+    });
+    list.appendChild(item);
+  });
+}
+
+/* ============== Summary ============== */
+function renderSummary() {
+  const el = document.getElementById('day-summary');
+  const day = getDay(viewDay);
+  const totals = {};
+  let studyMin = 0;
+  day.blocks.forEach(b => {
+    const dur = timeToMinutes(b.end) - timeToMinutes(b.start);
+    if (dur <= 0) return;
+    totals[b.category] = (totals[b.category] || 0) + dur;
+    if (CATEGORIES[b.category]?.studyish) studyMin += dur;
+  });
+  if (!day.blocks.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:12px;">Nothing scheduled. Click a time slot to add a block.</div>';
+    return;
+  }
+  let html = `<div class="stat"><span>Study time</span><span>${formatDuration(studyMin)}</span></div>`;
+  html += `<div class="stat"><span>Total scheduled</span><span>${formatDuration(Object.values(totals).reduce((a,b)=>a+b,0))}</span></div>`;
+  Object.entries(totals).sort((a,b)=>b[1]-a[1]).forEach(([cat, mins]) => {
+    html += `<div class="stat"><span>${CATEGORIES[cat]?.label || cat}</span><span>${formatDuration(mins)}</span></div>`;
+  });
+  el.innerHTML = html;
+}
+function formatDuration(min) {
+  const h = Math.floor(min/60), m = min%60;
+  if (h && m) return `${h}h ${m}m`;
+  if (h) return `${h}h`;
+  return `${m}m`;
+}
+
+/* ============== Legend ============== */
+function renderLegend() {
+  const el = document.getElementById('legend');
+  el.innerHTML = '';
+  Object.entries(CATEGORIES).forEach(([key, c]) => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `<div class="swatch ${c.cls}"></div><div>${c.label}</div>`;
+    el.appendChild(row);
+  });
+}
+
+/* ============== Block modal ============== */
+function openBlockModal(blockId, prefill) {
+  editingBlockId = blockId;
+  const day = getDay(viewDay);
+  const titleEl = document.getElementById('block-modal-title');
+  const tInput = document.getElementById('b-title');
+  const sInput = document.getElementById('b-start');
+  const eInput = document.getElementById('b-end');
+  const cInput = document.getElementById('b-category');
+  const nInput = document.getElementById('b-notes');
+  const delBtn = document.getElementById('b-delete');
+
+  if (blockId) {
+    const b = day.blocks.find(x => x.id === blockId);
+    titleEl.textContent = 'Edit block';
+    tInput.value = b.title || '';
+    sInput.value = b.start;
+    eInput.value = b.end;
+    cInput.value = b.category;
+    nInput.value = b.notes || '';
+    delBtn.style.display = '';
+  } else {
+    titleEl.textContent = 'Add block';
+    tInput.value = '';
+    const startH = prefill?.startHour ?? 9;
+    sInput.value = `${String(startH).padStart(2,'0')}:00`;
+    eInput.value = `${String(startH+1).padStart(2,'0')}:00`;
+    cInput.value = 'bb';
+    nInput.value = '';
+    delBtn.style.display = 'none';
+  }
+
+  document.getElementById('block-modal').classList.add('active');
+  setTimeout(() => tInput.focus(), 50);
+}
+function closeBlockModal() {
+  document.getElementById('block-modal').classList.remove('active');
+  editingBlockId = null;
+}
+function saveBlock() {
+  const day = getDay(viewDay);
+  const title = document.getElementById('b-title').value.trim();
+  const start = document.getElementById('b-start').value;
+  const end = document.getElementById('b-end').value;
+  const category = document.getElementById('b-category').value;
+  const notes = document.getElementById('b-notes').value.trim();
+  if (!start || !end) { alert('Please set start and end times.'); return; }
+  if (timeToMinutes(end) <= timeToMinutes(start)) { alert('End must be after start.'); return; }
+
+  if (editingBlockId) {
+    const b = day.blocks.find(x => x.id === editingBlockId);
+    Object.assign(b, { title, start, end, category, notes });
+  } else {
+    day.blocks.push({ id: uid(), title, start, end, category, notes });
+  }
+  day.blocks.sort((a,b) => a.start.localeCompare(b.start));
+  saveState();
+  closeBlockModal();
+  renderDay();
+  renderMonth();
+}
+function deleteBlock() {
+  if (!editingBlockId) return;
+  const day = getDay(viewDay);
+  day.blocks = day.blocks.filter(x => x.id !== editingBlockId);
+  saveState();
+  closeBlockModal();
+  renderDay();
+  renderMonth();
+}
+
+/* ============== View switching ============== */
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(name + '-view').classList.add('active');
+  if (name === 'month') renderMonth();
+  else renderDay();
+}
+
+/* ============== Wire up ============== */
+document.getElementById('view-month-btn').addEventListener('click', () => showView('month'));
+document.getElementById('view-day-btn').addEventListener('click', () => showView('day'));
+document.getElementById('back-to-month').addEventListener('click', () => showView('month'));
+
+document.getElementById('prev-month').addEventListener('click', () => {
+  viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1); renderMonth();
+});
+document.getElementById('next-month').addEventListener('click', () => {
+  viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1); renderMonth();
+});
+document.getElementById('today-btn').addEventListener('click', () => {
+  viewMonth = new Date(); viewMonth.setDate(1); renderMonth();
+});
+
+document.getElementById('prev-day').addEventListener('click', () => {
+  viewDay = new Date(viewDay); viewDay.setDate(viewDay.getDate() - 1); renderDay();
+});
+document.getElementById('next-day').addEventListener('click', () => {
+  viewDay = new Date(viewDay); viewDay.setDate(viewDay.getDate() + 1); renderDay();
+});
+
+document.getElementById('add-block-btn').addEventListener('click', () => openBlockModal(null));
+document.getElementById('b-cancel').addEventListener('click', closeBlockModal);
+document.getElementById('b-save').addEventListener('click', saveBlock);
+document.getElementById('b-delete').addEventListener('click', deleteBlock);
+document.getElementById('block-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'block-modal') closeBlockModal();
+});
+
+document.getElementById('todo-add-btn').addEventListener('click', addTodo);
+document.getElementById('todo-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') addTodo();
+});
+function addTodo() {
+  const input = document.getElementById('todo-input');
+  const text = input.value.trim();
+  if (!text) return;
+  const day = getDay(viewDay);
+  day.todos.push({ id: uid(), text, done: false });
+  input.value = '';
+  saveState();
+  renderTodos();
+}
+
+document.getElementById('exam-date-btn').addEventListener('click', () => {
+  const current = state.examDate ? state.examDate : '';
+  const v = prompt('Enter MCAT exam date (YYYY-MM-DD)', current);
+  if (v === null) return;
+  if (v === '') { state.examDate = null; }
+  else if (/^\d{4}-\d{2}-\d{2}$/.test(v)) { state.examDate = v; }
+  else { alert('Invalid date format'); return; }
+  saveState();
+  renderCountdown();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeBlockModal();
+});
+
+/* ============== Init ============== */
+renderCountdown();
+renderMonth();
+</script>
+</body>
+</html>
