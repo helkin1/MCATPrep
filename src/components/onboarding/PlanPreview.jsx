@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { resolveCategories, getCategory } from "@/lib/categories";
 import { dayKey, addDays, formatTimeRange, uid } from "@/lib/time";
 import { Button, Input, Label } from "@/components/ui";
@@ -66,9 +67,15 @@ export function PlanPreview({ parsed, onCommit, onBack, defaultStartDate }) {
     });
   };
 
-  const commit = () => {
+  const [committing, setCommitting] = useState(false);
+  const commit = async () => {
     const items = resolvedItems.filter((it) => !excluded.has(it.idx));
-    onCommit(items);
+    setCommitting(true);
+    try {
+      await onCommit(items);
+    } finally {
+      setCommitting(false);
+    }
   };
 
   return (
@@ -170,15 +177,18 @@ export function PlanPreview({ parsed, onCommit, onBack, defaultStartDate }) {
       </div>
 
       <div className="flex justify-between gap-2 pt-2">
-        <Button variant="ghost" onClick={onBack}>
+        <Button variant="ghost" onClick={onBack} disabled={committing}>
           ← Back
         </Button>
         <Button
           onClick={commit}
-          disabled={grouped.length === 0}
+          disabled={grouped.length === 0 || committing}
           size="md"
         >
-          Apply {resolvedItems.length - excluded.size} blocks
+          {committing && <Loader2 size={14} className="animate-spin" />}
+          {committing
+            ? "Saving…"
+            : `Apply ${resolvedItems.length - excluded.size} blocks`}
         </Button>
       </div>
     </div>
