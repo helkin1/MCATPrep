@@ -1,16 +1,50 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { RotateCcw } from "lucide-react";
 import { CategoriesPanel } from "@/components/settings/CategoriesPanel";
 import { TemplatesPanel } from "@/components/settings/TemplatesPanel";
-import { Button, Input, Label, Segmented, useToast } from "@/components/ui";
+import {
+  Button,
+  Input,
+  Label,
+  Segmented,
+  useToast,
+  useConfirm,
+} from "@/components/ui";
 
 export function SettingsPage({ profile, updateProfile, templates, persistTemplates, days, bulkReplaceDays }) {
   const [tab, setTab] = useState("categories");
   const [examDate, setExamDate] = useState(profile?.exam_date || "");
   const { toast } = useToast();
+  const { confirm } = useConfirm();
+  const navigate = useNavigate();
 
   const saveExamDate = async () => {
     await updateProfile({ exam_date: examDate || null });
     toast({ variant: "success", title: "Exam date saved" });
+  };
+
+  const restartOnboarding = async () => {
+    const ok = await confirm({
+      title: "Restart onboarding?",
+      description:
+        "You'll be sent through the welcome flow again. Your existing schedule, categories, and templates are kept — only the onboarding flag is reset.",
+      confirmLabel: "Restart",
+      cancelLabel: "Cancel",
+    });
+    if (!ok) return;
+    try {
+      await updateProfile({ onboarding_complete: false });
+      toast({ variant: "success", title: "Onboarding reset" });
+      navigate("/");
+    } catch (e) {
+      console.error("[settings] restartOnboarding", e);
+      toast({
+        variant: "error",
+        title: "Couldn't restart onboarding",
+        description: e.message || "Please try again.",
+      });
+    }
   };
 
   const dirty = (profile?.exam_date || "") !== examDate;
@@ -68,6 +102,29 @@ export function SettingsPage({ profile, updateProfile, templates, persistTemplat
             bulkReplaceDays={bulkReplaceDays}
           />
         )}
+
+        <section className="mt-12">
+          <h2 className="text-[11px] uppercase tracking-[0.06em] font-medium text-text-3 mb-3">
+            Advanced
+          </h2>
+          <div className="bg-surface-1 border border-border rounded-xl p-5">
+            <div className="flex items-start gap-4">
+              <div className="flex-1">
+                <div className="text-[13px] font-medium text-text-1">
+                  Restart onboarding
+                </div>
+                <p className="text-[12px] text-text-2 mt-1 leading-relaxed">
+                  Send yourself back through the welcome flow — useful for trying
+                  new versions of the setup experience. Your schedule, categories,
+                  and templates are kept.
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={restartOnboarding}>
+                <RotateCcw size={13} /> Restart
+              </Button>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );

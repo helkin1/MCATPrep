@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Calendar, Clock, Settings, LogOut, Moon, Sun } from "lucide-react";
 import { signOut } from "@/lib/supabase";
@@ -123,16 +123,63 @@ export function TopBar({ examDate }) {
             {theme === "light" ? <Moon size={14} /> : <Sun size={14} />}
           </button>
         </Tooltip>
-        <Tooltip label="Sign out" side="bottom">
-          <button
-            onClick={() => signOut()}
-            aria-label="Sign out"
-            className="inline-flex items-center justify-center h-8 w-8 rounded-md text-text-2 hover:text-text-1 hover:bg-surface-2 transition-colors"
-          >
-            <LogOut size={14} />
-          </button>
-        </Tooltip>
+        <SignOutButton />
       </div>
     </header>
+  );
+}
+
+/**
+ * Two-step sign-out button:
+ *   click #1 — expands inline to "Log out?"
+ *   click #2 — signs out
+ * Reverts to icon-only on outside click or after a 4s timeout, so a stray
+ * click can't strand a half-confirmed state in the chrome.
+ */
+function SignOutButton() {
+  const [confirming, setConfirming] = useState(false);
+  const ref = useRef(null);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (!confirming) return;
+    const onDown = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setConfirming(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    timerRef.current = setTimeout(() => setConfirming(false), 4000);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      clearTimeout(timerRef.current);
+    };
+  }, [confirming]);
+
+  const onClick = () => {
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
+    signOut();
+  };
+
+  return (
+    <button
+      ref={ref}
+      onClick={onClick}
+      aria-label={confirming ? "Confirm sign out" : "Sign out"}
+      className={cn(
+        "inline-flex items-center justify-center h-8 rounded-md transition-[background,color,width,padding] duration-[var(--dur-base)] ease-[var(--ease-out)]",
+        confirming
+          ? "px-3 gap-1.5 bg-danger/15 text-danger hover:bg-danger/25"
+          : "w-8 text-text-2 hover:text-text-1 hover:bg-surface-2"
+      )}
+    >
+      <LogOut size={14} />
+      {confirming && (
+        <span className="text-[12px] font-medium whitespace-nowrap">
+          Log out?
+        </span>
+      )}
+    </button>
   );
 }
