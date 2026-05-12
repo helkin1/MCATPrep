@@ -225,6 +225,19 @@ export function DayView({ days, settings, examDate, upsertBlock, deleteBlock, se
           todos={todos}
           categories={categories}
           onTodosChange={(t) => setDayTodos(key, t)}
+          onScheduleTodo={(t) => {
+            // Open the block editor pre-filled with the todo text so the user
+            // chooses time + category before it lands on the schedule. The
+            // todo itself is left alone — they can delete it after if they
+            // want.
+            setEditing({
+              title: t.text,
+              start: "09:00",
+              end: "10:00",
+              category: categories[0]?.id || "personal",
+              notes: "",
+            });
+          }}
           templates={templates}
           onSaveAsTemplate={saveAsTemplate}
           onApplyTemplate={applyTemplate}

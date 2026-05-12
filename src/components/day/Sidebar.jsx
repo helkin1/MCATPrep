@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, CalendarPlus } from "lucide-react";
 import { formatDuration, timeToMinutes, uid } from "@/lib/time";
-import { Button, Input, SectionLabel } from "@/components/ui";
+import { Button, Input, SectionLabel, Tooltip } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
-export function Sidebar({ blocks, todos, categories, onTodosChange, onApplyTemplate, templates, onSaveAsTemplate }) {
+export function Sidebar({ blocks, todos, categories, onTodosChange, onScheduleTodo, onApplyTemplate, templates, onSaveAsTemplate }) {
   const [todoText, setTodoText] = useState("");
 
   const stats = (() => {
@@ -98,6 +98,18 @@ export function Sidebar({ blocks, todos, categories, onTodosChange, onApplyTempl
               >
                 {t.text}
               </span>
+              <Tooltip label="Schedule as block" side="left">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onScheduleTodo?.(t);
+                  }}
+                  aria-label="Schedule to-do as block"
+                  className="text-text-3 hover:text-accent transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <CalendarPlus size={13} />
+                </button>
+              </Tooltip>
               <button
                 onClick={(e) => {
                   e.preventDefault();
