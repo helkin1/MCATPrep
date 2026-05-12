@@ -11,13 +11,14 @@ const ITEM_SCHEMA = `Each item:
   "end": "HH:MM",                           // 24-hour
   "duration_minutes": 60,                   // optional, used if start/end omitted
   "title": "CARS — Passages 1–4",
-  "category": "test" | "bb" | "cp" | "ps" | "cars" | "review" | "exercise" | "meal" | "break" | "personal" | "sleep",
+  "category": "test" | "questions" | "bb" | "cp" | "ps" | "cars" | "review" | "exercise" | "meal" | "break" | "personal" | "sleep",
   "notes": "optional"
 }`;
 
 const CATEGORY_RULES = `## Category mapping rules
 
 - "FL", "full length", "practice test", "AAMC sample" → test
+- "passages", "Q-bank", "UWorld", "Kaplan questions", "discrete questions", "practice questions" → questions
 - "Bio", "Biochem", "Biochemistry", "Biology" → bb
 - "Chem", "Gen Chem", "OChem", "Organic", "Physics", "Phys" → cp
 - "Psych", "Soc", "Sociology", "Behavioral" → ps
