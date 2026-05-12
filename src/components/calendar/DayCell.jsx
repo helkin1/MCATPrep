@@ -23,13 +23,18 @@ export function DayCell({ date, inMonth, isToday, isExamDay, dayData, categories
   const blocks = dayData?.blocks || [];
   const myKey = dayKey(date);
 
-  const sorted = [...blocks].sort((a, b) => {
-    const aS = (categories.find((c) => c.id === a.category)?.studyish ? 0 : 1);
-    const bS = (categories.find((c) => c.id === b.category)?.studyish ? 0 : 1);
-    if (aS !== bS) return aS - bS;
+  // Pick the top 3 most MCAT-relevant blocks by category priority, then
+  // display those 3 in chronological order so the cell still reads
+  // top-to-bottom. Priority is defined on the category — see
+  // lib/categories.js.
+  const byPriority = [...blocks].sort((a, b) => {
+    const ap = categories.find((c) => c.id === a.category)?.priority ?? 100;
+    const bp = categories.find((c) => c.id === b.category)?.priority ?? 100;
+    if (ap !== bp) return ap - bp;
     return a.start.localeCompare(b.start);
   });
-  const visible = sorted.slice(0, 3);
+  const top = byPriority.slice(0, 3);
+  const visible = top.sort((a, b) => a.start.localeCompare(b.start));
   const more = blocks.length - visible.length;
 
   const onCellClick = (e) => {

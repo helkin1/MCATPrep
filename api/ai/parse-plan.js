@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { PARSE_PLAN_SYSTEM_PROMPT } from "./prompts.js";
+import { PARSE_PLAN_SYSTEM_PROMPT, DESCRIBE_PLAN_SYSTEM_PROMPT } from "./prompts.js";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -39,37 +39,59 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body || {};
-    const { kind, text, base64, mimeType } = body;
+    const { kind, text, base64, mimeType, instructions, examDate, startDate } = body;
     if (!kind) return res.status(400).json({ error: "Missing 'kind'" });
+
+    // Pick the right system prompt. "describe" generates a plan from intent;
+    // the rest extract from a source document.
+    const system =
+      kind === "describe" ? DESCRIBE_PLAN_SYSTEM_PROMPT : PARSE_PLAN_SYSTEM_PROMPT;
+
+    // Optional preamble attached to every request. Lets the user add free-form
+    // instructions ("CARS in the mornings", "skip Sundays") that override
+    // ambiguities in the parsed/described plan.
+    const preamble = [];
+    if (kind === "describe") {
+      if (startDate) preamble.push(`Start date: ${startDate}`);
+      if (examDate) preamble.push(`Exam date: ${examDate}`);
+    }
+    if (instructions && typeof instructions === "string" && instructions.trim()) {
+      preamble.push(`User instructions:\n${instructions.trim()}`);
+    }
+    const preambleText = preamble.length ? preamble.join("\n\n") + "\n\n" : "";
 
     // Build the user content
     let content;
     if (kind === "text") {
       if (!text || typeof text !== "string") return res.status(400).json({ error: "Missing text" });
       if (text.length > 200_000) return res.status(413).json({ error: "Text too long" });
-      content = [{ type: "text", text }];
+      content = [{ type: "text", text: preambleText + text }];
+    } else if (kind === "describe") {
+      if (!text || typeof text !== "string") return res.status(400).json({ error: "Missing description" });
+      if (text.length > 50_000) return res.status(413).json({ error: "Description too long" });
+      content = [{ type: "text", text: preambleText + "User description:\n" + text }];
     } else if (kind === "image") {
       if (!base64 || !mimeType) return res.status(400).json({ error: "Missing image data" });
       if (base64.length > MAX_BYTES * 1.4) return res.status(413).json({ error: "Image too large" });
       content = [
         { type: "image", source: { type: "base64", media_type: mimeType, data: base64 } },
-        { type: "text", text: "Parse this MCAT study plan screenshot." },
+        { type: "text", text: preambleText + "Parse this MCAT study plan screenshot." },
       ];
     } else if (kind === "pdf") {
       if (!base64) return res.status(400).json({ error: "Missing pdf data" });
       if (base64.length > MAX_BYTES * 1.4) return res.status(413).json({ error: "PDF too large" });
       content = [
         { type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } },
-        { type: "text", text: "Parse this MCAT study plan PDF." },
+        { type: "text", text: preambleText + "Parse this MCAT study plan PDF." },
       ];
     } else {
-      return res.status(400).json({ error: "Invalid 'kind'. Use 'text', 'image', or 'pdf'." });
+      return res.status(400).json({ error: "Invalid 'kind'. Use 'text', 'image', 'pdf', or 'describe'." });
     }
 
     const message = await client.messages.create({
       model: "claude-sonnet-4-5",
       max_tokens: 8192,
-      system: PARSE_PLAN_SYSTEM_PROMPT,
+      system,
       messages: [{ role: "user", content }],
     });
 

@@ -3,8 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { PlanUploader } from "./PlanUploader";
 import { PlanPreview } from "./PlanPreview";
 import { dayKey, uid } from "@/lib/time";
-import { Button, Input, Label } from "@/components/ui";
+import { Button, Input, Label, useToast } from "@/components/ui";
 import { cn } from "@/lib/utils";
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_RE = /^\d{2}:\d{2}$/;
 
 export function Onboarding({ profile, updateProfile, days, bulkReplace }) {
   const navigate = useNavigate();
@@ -12,6 +15,7 @@ export function Onboarding({ profile, updateProfile, days, bulkReplace }) {
   const [examDate, setExamDate] = useState(profile?.exam_date || "");
   const [parsed, setParsed] = useState(null);
   const [busy, setBusy] = useState(false);
+  const { toast } = useToast();
 
   const saveExamDate = async () => {
     if (!examDate) return;
@@ -19,42 +23,75 @@ export function Onboarding({ profile, updateProfile, days, bulkReplace }) {
     try {
       await updateProfile({ exam_date: examDate });
       setStep(2);
+    } catch (e) {
+      console.error("[onboarding] saveExamDate", e);
+      toast({
+        variant: "error",
+        title: "Could not save exam date",
+        description: e.message || "Please try again.",
+      });
     } finally {
       setBusy(false);
     }
   };
 
   const finish = async () => {
-    setBusy(true);
-    try {
-      await updateProfile({ onboarding_complete: true });
-      navigate("/");
-    } finally {
-      setBusy(false);
-    }
+    await updateProfile({ onboarding_complete: true });
+    navigate("/");
   };
 
   const commit = async (items) => {
-    const next = { ...days };
-    for (const it of items) {
-      if (!next[it.date]) next[it.date] = { blocks: [], todos: [] };
-      next[it.date] = {
-        ...next[it.date],
-        blocks: [
-          ...next[it.date].blocks,
-          {
-            id: uid(),
-            title: it.title,
-            start: it.start,
-            end: it.end,
-            category: it.category,
-            notes: it.notes || "",
-          },
-        ].sort((a, b) => a.start.localeCompare(b.start)),
-      };
+    setBusy(true);
+    try {
+      // Defensive: filter items that can't be placed on the calendar so we
+      // never write `next[undefined]` into the days blob.
+      const valid = items.filter(
+        (it) =>
+          it &&
+          typeof it.date === "string" &&
+          DATE_RE.test(it.date) &&
+          TIME_RE.test(it.start || "") &&
+          TIME_RE.test(it.end || "")
+      );
+      const skipped = items.length - valid.length;
+
+      const next = { ...days };
+      for (const it of valid) {
+        if (!next[it.date]) next[it.date] = { blocks: [], todos: [] };
+        next[it.date] = {
+          ...next[it.date],
+          blocks: [
+            ...next[it.date].blocks,
+            {
+              id: uid(),
+              title: it.title,
+              start: it.start,
+              end: it.end,
+              category: it.category,
+              notes: it.notes || "",
+            },
+          ].sort((a, b) => a.start.localeCompare(b.start)),
+        };
+      }
+      bulkReplace(next);
+      await finish();
+      toast({
+        variant: "success",
+        title: `Added ${valid.length} blocks`,
+        description: skipped
+          ? `${skipped} item(s) skipped due to missing date/time.`
+          : undefined,
+      });
+    } catch (e) {
+      console.error("[onboarding] commit failed", e);
+      toast({
+        variant: "error",
+        title: "Could not save your plan",
+        description: e.message || "Please try again.",
+      });
+    } finally {
+      setBusy(false);
     }
-    bulkReplace(next);
-    await finish();
   };
 
   return (
@@ -68,7 +105,13 @@ export function Onboarding({ profile, updateProfile, days, bulkReplace }) {
         }}
       />
 
-      <div className="relative w-full max-w-2xl">
+      <div
+        className={cn(
+          "relative w-full transition-[max-width] duration-[var(--dur-base)] ease-[var(--ease-out)]",
+          // Step 3 needs room for the preview + chat panel.
+          step === 3 ? "max-w-5xl" : "max-w-2xl"
+        )}
+      >
         {/* Brand */}
         <div className="flex items-center gap-2 mb-6">
           <div className="w-5 h-5 rounded-[5px] bg-gradient-to-br from-accent to-accent-strong shadow-sm" />
@@ -141,11 +184,27 @@ export function Onboarding({ profile, updateProfile, days, bulkReplace }) {
                 before saving.
               </p>
               <PlanUploader
+                examDate={profile?.exam_date}
+                startDate={dayKey(new Date())}
                 onParsed={(p) => {
                   setParsed(p);
                   setStep(3);
                 }}
-                onSkip={finish}
+                onSkip={async () => {
+                  setBusy(true);
+                  try {
+                    await finish();
+                  } catch (e) {
+                    console.error("[onboarding] skip", e);
+                    toast({
+                      variant: "error",
+                      title: "Could not finish onboarding",
+                      description: e.message || "Please try again.",
+                    });
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
               />
             </div>
           )}
@@ -156,6 +215,7 @@ export function Onboarding({ profile, updateProfile, days, bulkReplace }) {
               onBack={() => setStep(2)}
               onCommit={commit}
               defaultStartDate={dayKey(new Date())}
+              examDate={profile?.exam_date}
             />
           )}
         </div>
