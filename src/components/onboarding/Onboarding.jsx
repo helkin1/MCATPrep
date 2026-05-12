@@ -105,7 +105,13 @@ export function Onboarding({ profile, updateProfile, days, bulkReplace }) {
         }}
       />
 
-      <div className="relative w-full max-w-2xl">
+      <div
+        className={cn(
+          "relative w-full transition-[max-width] duration-[var(--dur-base)] ease-[var(--ease-out)]",
+          // Step 3 needs room for the preview + chat panel.
+          step === 3 ? "max-w-5xl" : "max-w-2xl"
+        )}
+      >
         {/* Brand */}
         <div className="flex items-center gap-2 mb-6">
           <div className="w-5 h-5 rounded-[5px] bg-gradient-to-br from-accent to-accent-strong shadow-sm" />
@@ -178,6 +184,8 @@ export function Onboarding({ profile, updateProfile, days, bulkReplace }) {
                 before saving.
               </p>
               <PlanUploader
+                examDate={profile?.exam_date}
+                startDate={dayKey(new Date())}
                 onParsed={(p) => {
                   setParsed(p);
                   setStep(3);
@@ -207,6 +215,7 @@ export function Onboarding({ profile, updateProfile, days, bulkReplace }) {
               onBack={() => setStep(2)}
               onCommit={commit}
               defaultStartDate={dayKey(new Date())}
+              examDate={profile?.exam_date}
             />
           )}
         </div>

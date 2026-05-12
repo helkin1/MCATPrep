@@ -4,19 +4,24 @@
  * in `profiles.settings.categories` as an array merged with these defaults.
  */
 
+// `priority` controls the order blocks surface in dense views like the
+// month grid (lower number = more prominent). Approved ranking:
+//   test → bb → cp → ps → cars → review → personal → exercise → meal → break → sleep
 export const DEFAULT_CATEGORIES = [
-  { id: "cars", label: "CARS", color: "#f59e0b", studyish: true, builtin: true },
-  { id: "bb", label: "Bio / Biochem", color: "#22c55e", studyish: true, builtin: true },
-  { id: "cp", label: "Chem / Physics", color: "#3b82f6", studyish: true, builtin: true },
-  { id: "ps", label: "Psych / Soc", color: "#ec4899", studyish: true, builtin: true },
-  { id: "test", label: "Practice test", color: "#ef4444", studyish: true, builtin: true },
-  { id: "review", label: "Review / Anki", color: "#a855f7", studyish: true, builtin: true },
-  { id: "exercise", label: "Exercise", color: "#14b8a6", studyish: false, builtin: true },
-  { id: "meal", label: "Meal", color: "#eab308", studyish: false, builtin: true },
-  { id: "break", label: "Break", color: "#64748b", studyish: false, builtin: true },
-  { id: "personal", label: "Personal", color: "#06b6d4", studyish: false, builtin: true },
-  { id: "sleep", label: "Sleep", color: "#475569", studyish: false, builtin: true },
+  { id: "test", label: "Practice test", color: "#ef4444", studyish: true, priority: 1, builtin: true },
+  { id: "bb", label: "Bio / Biochem", color: "#22c55e", studyish: true, priority: 2, builtin: true },
+  { id: "cp", label: "Chem / Physics", color: "#3b82f6", studyish: true, priority: 3, builtin: true },
+  { id: "ps", label: "Psych / Soc", color: "#ec4899", studyish: true, priority: 4, builtin: true },
+  { id: "cars", label: "CARS", color: "#f59e0b", studyish: true, priority: 5, builtin: true },
+  { id: "review", label: "Review / Anki", color: "#a855f7", studyish: true, priority: 6, builtin: true },
+  { id: "personal", label: "Personal", color: "#06b6d4", studyish: false, priority: 7, builtin: true },
+  { id: "exercise", label: "Exercise", color: "#14b8a6", studyish: false, priority: 8, builtin: true },
+  { id: "meal", label: "Meal", color: "#eab308", studyish: false, priority: 9, builtin: true },
+  { id: "break", label: "Break", color: "#64748b", studyish: false, priority: 10, builtin: true },
+  { id: "sleep", label: "Sleep", color: "#475569", studyish: false, priority: 11, builtin: true },
 ];
+
+export const DEFAULT_PRIORITY = 100;
 
 /** Wide palette for custom category color picker. */
 export const COLOR_PALETTE = [
