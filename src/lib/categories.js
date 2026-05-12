@@ -5,20 +5,22 @@
  */
 
 // `priority` controls the order blocks surface in dense views like the
-// month grid (lower number = more prominent). Approved ranking:
-//   test → bb → cp → ps → cars → review → personal → exercise → meal → break → sleep
+// month grid (lower number = more prominent). User can reorder these via
+// Settings → Categories; the reordered list is stored back as the user's
+// settings.categories (full list, not just overrides).
 export const DEFAULT_CATEGORIES = [
   { id: "test", label: "Practice test", color: "#ef4444", studyish: true, priority: 1, builtin: true },
-  { id: "bb", label: "Bio / Biochem", color: "#22c55e", studyish: true, priority: 2, builtin: true },
-  { id: "cp", label: "Chem / Physics", color: "#3b82f6", studyish: true, priority: 3, builtin: true },
-  { id: "ps", label: "Psych / Soc", color: "#ec4899", studyish: true, priority: 4, builtin: true },
-  { id: "cars", label: "CARS", color: "#f59e0b", studyish: true, priority: 5, builtin: true },
-  { id: "review", label: "Review / Anki", color: "#a855f7", studyish: true, priority: 6, builtin: true },
-  { id: "personal", label: "Personal", color: "#06b6d4", studyish: false, priority: 7, builtin: true },
-  { id: "exercise", label: "Exercise", color: "#14b8a6", studyish: false, priority: 8, builtin: true },
-  { id: "meal", label: "Meal", color: "#eab308", studyish: false, priority: 9, builtin: true },
-  { id: "break", label: "Break", color: "#64748b", studyish: false, priority: 10, builtin: true },
-  { id: "sleep", label: "Sleep", color: "#475569", studyish: false, priority: 11, builtin: true },
+  { id: "questions", label: "Practice questions", color: "#f43f5e", studyish: true, priority: 2, builtin: true },
+  { id: "bb", label: "Bio / Biochem", color: "#22c55e", studyish: true, priority: 3, builtin: true },
+  { id: "cp", label: "Chem / Physics", color: "#3b82f6", studyish: true, priority: 4, builtin: true },
+  { id: "ps", label: "Psych / Soc", color: "#ec4899", studyish: true, priority: 5, builtin: true },
+  { id: "cars", label: "CARS", color: "#f59e0b", studyish: true, priority: 6, builtin: true },
+  { id: "review", label: "Review / Anki", color: "#a855f7", studyish: true, priority: 7, builtin: true },
+  { id: "personal", label: "Personal", color: "#06b6d4", studyish: false, priority: 8, builtin: true },
+  { id: "exercise", label: "Exercise", color: "#14b8a6", studyish: false, priority: 9, builtin: true },
+  { id: "meal", label: "Meal", color: "#eab308", studyish: false, priority: 10, builtin: true },
+  { id: "break", label: "Break", color: "#64748b", studyish: false, priority: 11, builtin: true },
+  { id: "sleep", label: "Sleep", color: "#475569", studyish: false, priority: 12, builtin: true },
 ];
 
 export const DEFAULT_PRIORITY = 100;
@@ -35,15 +37,31 @@ export const COLOR_PALETTE = [
   "#db2777", "#e11d48", "#94a3b8", "#334155", "#000000",
 ];
 
-/** Merge user-defined categories with defaults. User overrides win on `id` collision. */
+/**
+ * Merge user-defined categories with defaults. User entries are honored in
+ * their stored order (so reordering in Settings is sticky); defaults that
+ * the user hasn't touched fall in after the user list in their natural
+ * order. User overrides win on `id` collision.
+ */
 export function resolveCategories(custom = []) {
-  const map = new Map();
-  for (const c of DEFAULT_CATEGORIES) map.set(c.id, c);
+  const out = [];
+  const seen = new Set();
+
+  // First pass — preserve user-defined ordering, merge with builtin defaults.
   for (const c of custom || []) {
-    const existing = map.get(c.id);
-    map.set(c.id, { ...existing, ...c });
+    const def = DEFAULT_CATEGORIES.find((d) => d.id === c.id);
+    out.push({ ...def, ...c });
+    seen.add(c.id);
   }
-  return Array.from(map.values());
+
+  // Second pass — append untouched defaults in their original order.
+  for (const d of DEFAULT_CATEGORIES) {
+    if (!seen.has(d.id)) out.push(d);
+  }
+
+  // Reassign priority by current position so downstream sort is consistent
+  // regardless of how priorities were originally stored.
+  return out.map((c, i) => ({ ...c, priority: i + 1 }));
 }
 
 export function getCategory(categories, id) {

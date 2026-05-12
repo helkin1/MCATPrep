@@ -9,6 +9,7 @@ import { TopBar } from "@/components/common/TopBar";
 import { MonthView } from "@/components/calendar/MonthView";
 import { DayView } from "@/components/day/DayView";
 import { SettingsPage } from "@/pages/Settings";
+import { MChatProvider } from "@/components/mchat/MChat";
 import { supabase } from "@/lib/supabase";
 
 function MissingEnv() {
@@ -81,6 +82,16 @@ export default function App() {
   }
 
   return (
+    <MChatProvider
+      profile={profile}
+      updateProfile={updateProfile}
+      days={days}
+      templates={templates}
+      upsertBlock={upsertBlock}
+      deleteBlock={deleteBlock}
+      moveBlock={moveBlock}
+      setDayTodos={setDayTodos}
+    >
     <div className="flex flex-col h-screen">
       <TopBar examDate={profile.exam_date} />
       <div className="flex-1 overflow-hidden">
@@ -132,5 +143,6 @@ export default function App() {
         </Routes>
       </div>
     </div>
+    </MChatProvider>
   );
 }

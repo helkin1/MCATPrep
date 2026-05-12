@@ -4,9 +4,31 @@ import { ChevronLeft, ChevronRight, ArrowLeft, Plus } from "lucide-react";
 import { ScheduleGrid } from "./ScheduleGrid";
 import { Sidebar } from "./Sidebar";
 import { BlockEditor } from "./BlockEditor";
-import { addDays, dayKey, parseDayKey, todayKey, uid } from "@/lib/time";
+import { addDays, dayKey, parseDayKey, todayKey, uid, timeToMinutes, minutesToTime } from "@/lib/time";
 import { resolveCategories } from "@/lib/categories";
 import { Button, useConfirm, useToast } from "@/components/ui";
+
+// When a new "questions" block is saved, drop a proportional review block
+// right after it. Ratio 1.5× sits in the middle of the 1.2–1.8 range the
+// user requested; review duration is clamped so it doesn't run past 23:59.
+const REVIEW_RATIO = 1.5;
+
+function reviewFor(block) {
+  const startMin = timeToMinutes(block.start);
+  const endMin = timeToMinutes(block.end);
+  const len = Math.max(15, endMin - startMin);
+  const reviewLen = Math.round(len * REVIEW_RATIO);
+  const reviewStart = endMin;
+  const reviewEnd = Math.min(24 * 60 - 1, reviewStart + reviewLen);
+  if (reviewEnd <= reviewStart) return null;
+  return {
+    title: `Review — ${block.title || "questions"}`,
+    start: minutesToTime(reviewStart),
+    end: minutesToTime(reviewEnd),
+    category: "review",
+    notes: "Auto-paired with practice questions.",
+  };
+}
 
 export function DayView({ days, settings, examDate, upsertBlock, deleteBlock, setDayTodos, templates, persistTemplates }) {
   const navigate = useNavigate();
@@ -61,7 +83,23 @@ export function DayView({ days, settings, examDate, upsertBlock, deleteBlock, se
   };
 
   const save = (draft) => {
-    upsertBlock(key, { ...draft, id: draft.id || uid() });
+    const isNew = !draft.id;
+    const saved = { ...draft, id: draft.id || uid() };
+    upsertBlock(key, saved);
+
+    // Auto-pair a review block for new "questions" entries.
+    if (isNew && saved.category === "questions") {
+      const review = reviewFor(saved);
+      if (review) {
+        upsertBlock(key, { ...review, id: uid() });
+        toast({
+          variant: "success",
+          title: "Added review block",
+          description: `${review.start}–${review.end} paired with questions.`,
+        });
+      }
+    }
+
     setEditing(null);
   };
 
@@ -187,6 +225,19 @@ export function DayView({ days, settings, examDate, upsertBlock, deleteBlock, se
           todos={todos}
           categories={categories}
           onTodosChange={(t) => setDayTodos(key, t)}
+          onScheduleTodo={(t) => {
+            // Open the block editor pre-filled with the todo text so the user
+            // chooses time + category before it lands on the schedule. The
+            // todo itself is left alone — they can delete it after if they
+            // want.
+            setEditing({
+              title: t.text,
+              start: "09:00",
+              end: "10:00",
+              category: categories[0]?.id || "personal",
+              notes: "",
+            });
+          }}
           templates={templates}
           onSaveAsTemplate={saveAsTemplate}
           onApplyTemplate={applyTemplate}

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus, Trash2, Pencil, GripVertical } from "lucide-react";
 import { ColorPicker } from "@/components/common/ColorPicker";
 import {
   Button,
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui";
 import { DEFAULT_CATEGORIES, resolveCategories } from "@/lib/categories";
 import { uid } from "@/lib/time";
+import { cn } from "@/lib/utils";
 
 function tint(hex, alpha) {
   const c = (hex || "#888").replace("#", "");
@@ -25,22 +26,28 @@ function tint(hex, alpha) {
 }
 
 export function CategoriesPanel({ profile, updateProfile }) {
-  const custom = profile?.settings?.categories || [];
+  const stored = profile?.settings?.categories || [];
   const [editing, setEditing] = useState(null);
   const { confirm } = useConfirm();
   const { toast } = useToast();
 
-  const merged = useMemo(() => resolveCategories(custom), [custom]);
+  // resolveCategories returns the user's ordered list with builtins
+  // appended; `merged` is what we render. When the user reorders we save
+  // the full merged list back so the order sticks.
+  const merged = useMemo(() => resolveCategories(stored), [stored]);
 
+  // Persist a full ordered list. Strip the synthetic `priority` field —
+  // resolveCategories recomputes it on read from position.
   const persist = async (next) => {
-    const settings = { ...(profile.settings || {}), categories: next };
+    const clean = next.map(({ priority, ...rest }) => rest);
+    const settings = { ...(profile.settings || {}), categories: clean };
     await updateProfile({ settings });
   };
 
   const upsert = async (cat) => {
-    const next = [...custom];
+    const next = [...merged];
     const idx = next.findIndex((c) => c.id === cat.id);
-    if (idx >= 0) next[idx] = cat;
+    if (idx >= 0) next[idx] = { ...next[idx], ...cat };
     else next.push(cat);
     await persist(next);
     setEditing(null);
@@ -48,6 +55,8 @@ export function CategoriesPanel({ profile, updateProfile }) {
   };
 
   const remove = async (id) => {
+    const target = merged.find((c) => c.id === id);
+    if (target?.builtin) return; // built-ins aren't deletable
     const ok = await confirm({
       title: "Delete this category?",
       description:
@@ -56,7 +65,7 @@ export function CategoriesPanel({ profile, updateProfile }) {
       danger: true,
     });
     if (!ok) return;
-    await persist(custom.filter((c) => c.id !== id));
+    await persist(merged.filter((c) => c.id !== id));
     toast({ variant: "success", title: "Category deleted" });
   };
 
@@ -72,64 +81,133 @@ export function CategoriesPanel({ profile, updateProfile }) {
 
   const editBuiltin = (id) => {
     const original = DEFAULT_CATEGORIES.find((c) => c.id === id);
-    const overridden = custom.find((c) => c.id === id);
+    const overridden = merged.find((c) => c.id === id);
     setEditing({ ...original, ...overridden, builtin: true });
+  };
+
+  // ── Drag-and-drop reordering ────────────────────────────────────
+  // Tracks which row is being dragged and which index the cursor is
+  // currently over. We don't try to be fancy with offset math — drop
+  // before the hovered index, or append when dragging past the end.
+  const [dragId, setDragId] = useState(null);
+  const [dragOver, setDragOver] = useState(null);
+
+  const onDragStart = (e, id) => {
+    setDragId(id);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", id);
+  };
+  const onDragOverRow = (e, idx) => {
+    if (dragId == null) return;
+    e.preventDefault();
+    setDragOver(idx);
+  };
+  const onDropRow = async (e, idx) => {
+    e.preventDefault();
+    if (dragId == null) return;
+    const fromIdx = merged.findIndex((c) => c.id === dragId);
+    if (fromIdx === -1 || fromIdx === idx) {
+      setDragId(null);
+      setDragOver(null);
+      return;
+    }
+    const next = [...merged];
+    const [moved] = next.splice(fromIdx, 1);
+    const insertAt = idx > fromIdx ? idx - 1 : idx;
+    next.splice(insertAt, 0, moved);
+    setDragId(null);
+    setDragOver(null);
+    await persist(next);
+  };
+  const onDragEnd = () => {
+    setDragId(null);
+    setDragOver(null);
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-[13px] text-text-2">
-          Customize built-in category colors or add your own.
+          Drag the handle to rank by priority. Top of the list surfaces first
+          on dense days.
         </p>
         <Button size="sm" onClick={addNew}>
           <Plus size={14} /> New category
         </Button>
       </div>
 
-      <div className="space-y-1.5">
-        {merged.map((c) => (
-          <div
-            key={c.id}
-            className="flex items-center gap-3 bg-surface-1 border border-border hover:border-border-strong rounded-lg px-3 py-2.5 transition-colors group"
-          >
+      <div
+        className="space-y-1.5"
+        onDragOver={(e) => {
+          // Allow dropping past the last row by hovering empty space.
+          if (dragId != null) e.preventDefault();
+        }}
+        onDrop={(e) => onDropRow(e, merged.length)}
+      >
+        {merged.map((c, i) => {
+          const dragging = dragId === c.id;
+          const showDropAbove = dragOver === i && dragId && dragId !== c.id;
+          return (
             <div
-              className="w-8 h-8 rounded-md flex-shrink-0 border-l-[3px] flex items-center justify-center"
-              style={{
-                background: tint(c.color, 0.16),
-                borderLeftColor: c.color,
-              }}
-            />
-            <div className="flex-1 min-w-0">
-              <div className="font-medium text-[13px] text-text-1 truncate">
-                {c.label}
-              </div>
-              <div className="text-[11px] text-text-3">
-                {c.builtin ? "Built-in" : "Custom"}
-                {c.studyish && " · counts as study time"}
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => (c.builtin ? editBuiltin(c.id) : setEditing({ ...c }))}
-              aria-label="Edit category"
+              key={c.id}
+              draggable
+              onDragStart={(e) => onDragStart(e, c.id)}
+              onDragOver={(e) => onDragOverRow(e, i)}
+              onDrop={(e) => onDropRow(e, i)}
+              onDragEnd={onDragEnd}
+              className={cn(
+                "relative flex items-center gap-3 bg-surface-1 border border-border hover:border-border-strong rounded-lg px-2.5 py-2.5 transition-[border-color,opacity,box-shadow] group",
+                dragging && "opacity-40",
+                showDropAbove && "before:absolute before:left-0 before:right-0 before:-top-1 before:h-0.5 before:bg-accent before:rounded-full"
+              )}
             >
-              <Pencil size={14} />
-            </Button>
-            {!c.builtin && (
+              <span
+                className="cursor-grab active:cursor-grabbing text-text-3 hover:text-text-1 flex-shrink-0 -ml-0.5"
+                aria-label="Drag to reorder"
+              >
+                <GripVertical size={14} />
+              </span>
+              <span className="font-mono tabular text-[11px] text-text-3 w-5 text-center flex-shrink-0">
+                {i + 1}
+              </span>
+              <div
+                className="w-7 h-7 rounded-md flex-shrink-0 border-l-[3px]"
+                style={{
+                  background: tint(c.color, 0.16),
+                  borderLeftColor: c.color,
+                }}
+              />
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-[13px] text-text-1 truncate">
+                  {c.label}
+                </div>
+                <div className="text-[11px] text-text-3">
+                  {c.builtin ? "Built-in" : "Custom"}
+                  {c.studyish && " · counts as study time"}
+                </div>
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => remove(c.id)}
-                aria-label="Delete category"
-                className="hover:text-danger"
+                onClick={() => (c.builtin ? editBuiltin(c.id) : setEditing({ ...c }))}
+                aria-label="Edit category"
               >
-                <Trash2 size={14} />
+                <Pencil size={14} />
               </Button>
-            )}
-          </div>
-        ))}
+              {!c.builtin && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => remove(c.id)}
+                  aria-label="Delete category"
+                  className="hover:text-danger"
+                >
+                  <Trash2 size={14} />
+                </Button>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <Dialog open={!!editing} onClose={() => setEditing(null)} size="md">
@@ -139,7 +217,7 @@ export function CategoriesPanel({ profile, updateProfile }) {
               <DialogTitle>
                 {editing.builtin
                   ? "Override built-in category"
-                  : custom.some((c) => c.id === editing.id)
+                  : merged.some((c) => c.id === editing.id)
                   ? "Edit category"
                   : "New category"}
               </DialogTitle>
