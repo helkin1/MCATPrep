@@ -100,6 +100,7 @@ export function SettingsPage({ profile, updateProfile, templates, persistTemplat
             persistTemplates={persistTemplates}
             days={days}
             bulkReplaceDays={bulkReplaceDays}
+            examDate={profile?.exam_date}
           />
         )}
 
